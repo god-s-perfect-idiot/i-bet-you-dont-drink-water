@@ -1,21 +1,36 @@
 import { Box, CircularProgress, Container, Typography } from '@mui/material'
-import { metroPageTitleSx } from '../../theme/metroStyles'
+import { iosLargeTitleSx, iosTopInset } from '../../theme/iosStyles'
 
 export function LoadingScreen() {
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
-      <Box sx={{ height: 4, bgcolor: 'primary.main' }} />
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: 'background.default',
+        pt: iosTopInset,
+      }}
+    >
       <Container
         maxWidth="sm"
-        sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', py: 4 }}
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          py: 4,
+          px: 2,
+        }}
       >
-        <Typography component="h1" sx={{ ...metroPageTitleSx, mb: 1, alignSelf: 'flex-start' }}>
-          i bet you don&apos;t drink water
+        <Typography component="h1" sx={{ ...iosLargeTitleSx, mb: 1, alignSelf: 'flex-start' }}>
+          I Bet You Don&apos;t Drink Water
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 6, alignSelf: 'flex-start' }}>
-          chores · stakes · leaderboard
+          Chores · stakes · leaderboard
         </Typography>
-        <CircularProgress color="primary" size={40} aria-label="Loading" />
+        <CircularProgress color="primary" size={32} aria-label="Loading" />
       </Container>
     </Box>
   )

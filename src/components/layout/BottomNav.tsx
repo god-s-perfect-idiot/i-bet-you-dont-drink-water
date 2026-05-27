@@ -1,9 +1,15 @@
 import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material'
-import TaskIcon from '@mui/icons-material/Task'
+import TaskAltOutlinedIcon from '@mui/icons-material/TaskAltOutlined'
+import CasinoOutlinedIcon from '@mui/icons-material/CasinoOutlined'
+import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
+import CardGiftcardOutlinedIcon from '@mui/icons-material/CardGiftcardOutlined'
+import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
+import TaskAltIcon from '@mui/icons-material/TaskAlt'
 import CasinoIcon from '@mui/icons-material/Casino'
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
-import StorefrontIcon from '@mui/icons-material/Storefront'
+import CardGiftcardIcon from '@mui/icons-material/CardGiftcard'
 import PersonIcon from '@mui/icons-material/Person'
+import { iosFrostedBarSx } from '../../theme/iosStyles'
 
 interface BottomNavProps {
   value: number
@@ -11,11 +17,11 @@ interface BottomNavProps {
 }
 
 const navItems = [
-  { label: 'chores', icon: <TaskIcon /> },
-  { label: 'bets', icon: <CasinoIcon /> },
-  { label: 'rank', icon: <EmojiEventsIcon /> },
-  { label: 'store', icon: <StorefrontIcon /> },
-  { label: 'me', icon: <PersonIcon /> },
+  { label: 'Chores', outline: <TaskAltOutlinedIcon />, filled: <TaskAltIcon /> },
+  { label: 'Bets', outline: <CasinoOutlinedIcon />, filled: <CasinoIcon /> },
+  { label: 'Rank', outline: <EmojiEventsOutlinedIcon />, filled: <EmojiEventsIcon /> },
+  { label: 'Rewards', outline: <CardGiftcardOutlinedIcon />, filled: <CardGiftcardIcon /> },
+  { label: 'Me', outline: <PersonOutlineOutlinedIcon />, filled: <PersonIcon /> },
 ] as const
 
 export function BottomNav({ value, onChange }: BottomNavProps) {
@@ -29,14 +35,18 @@ export function BottomNav({ value, onChange }: BottomNavProps) {
         right: 0,
         bottom: 0,
         zIndex: (theme) => theme.zIndex.appBar,
-        bgcolor: 'background.default',
-        borderTop: 1,
-        borderColor: 'divider',
+        ...iosFrostedBarSx,
+        borderTop: '0.5px solid',
+        pb: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
       <BottomNavigation showLabels value={value} onChange={(_, next) => onChange(next)}>
-        {navItems.map((item) => (
-          <BottomNavigationAction key={item.label} label={item.label} icon={item.icon} />
+        {navItems.map((item, index) => (
+          <BottomNavigationAction
+            key={item.label}
+            label={item.label}
+            icon={value === index ? item.filled : item.outline}
+          />
         ))}
       </BottomNavigation>
     </Paper>

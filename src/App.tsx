@@ -2,42 +2,59 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import dayjs from 'dayjs'
 import AddIcon from '@mui/icons-material/Add'
-import { Alert, Box, Button, Container, IconButton, Stack, TextField, Typography } from '@mui/material'
+import {
+  Alert,
+  Box,
+  Button,
+  Container,
+  IconButton,
+  Snackbar,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material'
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { auth } from './firebase'
 import {
+  addRewardToStore,
   completeTodo,
+  createReward,
   createTodo,
   ensureUserProfile,
   getRandomCandidate,
   placeBet,
-  purchaseStoreItem,
+  redeemReward,
   settleExpiredChores,
   subscribeLeaderboard,
   subscribeMyBets,
   subscribePopularChores,
+  subscribePopularRewards,
   subscribeProfile,
   subscribeTodos,
+  subscribeUserRewards,
   updateUserHandle,
 } from './firestore'
-import type { Bet, BetSide, Chore, LeaderboardEntry, UserProfile } from './types'
+import type { Bet, BetSide, Chore, LeaderboardEntry, Reward, UserProfile, UserReward } from './types'
 import { AuthPanel } from './components/auth/AuthPanel'
 import { LoadingScreen } from './components/auth/LoadingScreen'
 import { TopBar } from './components/layout/TopBar'
 import { BottomNav } from './components/layout/BottomNav'
-import { MetroPageHeader } from './components/metro/MetroPageHeader'
-import { MetroPivot } from './components/metro/MetroPivot'
+import { IOSPageHeader } from './components/ios/IOSPageHeader'
+import { IOSSegmentedControl } from './components/ios/IOSSegmentedControl'
+import { IOSGroupedSection } from './components/ios/IOSGroupedSection'
 import { MyChoresPanel } from './components/todos/MyChoresPanel'
+import { CreateChorePanel } from './components/todos/CreateChorePanel'
 import { RandomBetPanel } from './components/bets/RandomBetPanel'
 import { PopularChoresPanel } from './components/bets/PopularChoresPanel'
 import { MyBetsPanel } from './components/bets/MyBetsPanel'
 import { LeaderboardPanel } from './components/leaderboard/LeaderboardPanel'
-import { StorePanel } from './components/store/StorePanel'
-import { metroBottomInset, sectionStackSx } from './theme/metroStyles'
+import { CreateRewardPanel } from './components/rewards/CreateRewardPanel'
+import { RewardsPanel } from './components/rewards/RewardsPanel'
+import { iosBottomInset, sectionStackSx } from './theme/iosStyles'
 
 const stakeOptions = [50, 100, 250, 500]
 
-const pageTitles = ['chores', 'bets', 'rank', 'store', 'me'] as const
+const pageTitles = ['Chores', 'Bets', 'Rank', 'Rewards', 'Profile'] as const
 
 function App() {
   const [activeNav, setActiveNav] = useState(0)
@@ -57,9 +74,13 @@ function App() {
   const [todoTitle, setTodoTitle] = useState('')
   const [stake, setStake] = useState(100)
   const [betsTab, setBetsTab] = useState(0)
+  const [userRewards, setUserRewards] = useState<UserReward[]>([])
+  const [popularRewards, setPopularRewards] = useState<Reward[]>([])
+  const [isCreatingReward, setIsCreatingReward] = useState(false)
+  const [rewardTitle, setRewardTitle] = useState('')
+  const [rewardCost, setRewardCost] = useState('500')
   const [message, setMessage] = useState<string | null>(null)
   const [accountName, setAccountName] = useState('')
-
   useEffect(
     () =>
       onAuthStateChanged(auth, (firebaseUser) => {
@@ -80,6 +101,8 @@ function App() {
       subscribePopularChores(setPopularChores),
       subscribeMyBets(userId, setMyBets),
       subscribeLeaderboard(setLeaderboard),
+      subscribeUserRewards(userId, setUserRewards),
+      subscribePopularRewards(setPopularRewards),
     ]
     void loadCandidate(userId)
     return () => {
@@ -88,7 +111,9 @@ function App() {
   }, [userId])
 
   useEffect(() => {
-    setAccountName(profile?.handle ?? '')
+    queueMicrotask(() => {
+      setAccountName(profile?.handle ?? '')
+    })
   }, [profile?.handle])
 
   const userRank = useMemo(() => leaderboard.findIndex((row) => row.id === userId) + 1, [leaderboard, userId])
@@ -132,14 +157,40 @@ function App() {
     }
   }
 
-  async function onBuyStoreItem(productId: string, title: string): Promise<void> {
+  async function onCreateReward(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault()
     if (!userId) return
     setMessage(null)
     try {
-      await purchaseStoreItem(userId, productId)
-      setMessage(`You bought ${title}. Enjoy!`)
+      await createReward(userId, rewardTitle, Number(rewardCost))
+      setRewardTitle('')
+      setRewardCost('500')
+      setIsCreatingReward(false)
+      setMessage('Reward created and added to your store.')
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not complete purchase')
+      setMessage(error instanceof Error ? error.message : 'Could not create reward')
+    }
+  }
+
+  async function onAddRewardToStore(reward: Reward): Promise<void> {
+    if (!userId) return
+    setMessage(null)
+    try {
+      await addRewardToStore(userId, reward)
+      setMessage('Reward added to your store.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not add reward')
+    }
+  }
+
+  async function onRedeemReward(userReward: UserReward): Promise<void> {
+    if (!userId) return
+    setMessage(null)
+    try {
+      await redeemReward(userId, userReward)
+      setMessage(`Redeemed "${userReward.title}" for ${userReward.cost.toLocaleString()} coins.`)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not redeem reward')
     }
   }
 
@@ -148,9 +199,9 @@ function App() {
     setMessage(null)
     try {
       await updateUserHandle(userId, accountName)
-      setMessage('User name updated.')
+      setMessage('Display name updated.')
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not update user name')
+      setMessage(error instanceof Error ? error.message : 'Could not update display name')
     }
   }
 
@@ -176,73 +227,58 @@ function App() {
   }
 
   return (
-    <Box sx={{ pb: `calc(${metroBottomInset} + 12px)` }}>
+    <Box sx={{ pb: `calc(${iosBottomInset} + 16px)`, minHeight: '100vh', bgcolor: 'background.default' }}>
       <TopBar profile={profile} />
 
-      <Container maxWidth="sm" disableGutters sx={{ px: 1.5, py: 1 }}>
-        <MetroPageHeader
+      <Container maxWidth="sm" disableGutters sx={{ px: 2, py: 1.5 }}>
+        <IOSPageHeader
           title={pageTitles[activeNav]}
           subtitle={
             activeNav === 0
               ? `${todos.length} active`
               : activeNav === 1
-                ? 'place your stakes'
+                ? 'Place your stakes'
                 : activeNav === 2
                   ? userRank > 0
-                    ? `you are #${userRank}`
-                    : 'climb the board'
+                    ? `You're #${userRank}`
+                    : 'Climb the board'
                   : activeNav === 3
-                    ? `$${(profile?.balance ?? 0).toLocaleString()} to spend`
-                    : profile?.handle ?? 'player'
+                    ? 'Spend coins on real-world perks'
+                    : activeNav === 4
+                      ? profile?.handle ?? 'Player'
+                      : undefined
           }
           action={
-            activeNav === 0 && !isCreatingChore ? (
+            activeNav === 0 || activeNav === 3 ? (
               <IconButton
                 color="primary"
-                aria-label="Add chore"
-                onClick={() => setIsCreatingChore(true)}
+                aria-label={activeNav === 0 ? 'Add chore' : 'Add reward'}
+                onClick={() => (activeNav === 0 ? setIsCreatingChore(true) : setIsCreatingReward(true))}
                 sx={{
-                  border: '2px solid',
-                  borderColor: 'primary.main',
-                  borderRadius: 0,
-                  width: 48,
-                  height: 48,
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  width: 36,
+                  height: 36,
+                  '&:hover': { bgcolor: 'primary.dark' },
                 }}
               >
-                <AddIcon />
+                <AddIcon fontSize="small" />
               </IconButton>
             ) : undefined
           }
         />
 
-        {message ? (
-          <Alert severity="info" sx={{ mb: 2 }} onClose={() => setMessage(null)}>
-            {message}
-          </Alert>
-        ) : null}
-
         {activeNav === 0 && (
           <Stack spacing={0} sx={sectionStackSx}>
-            <MyChoresPanel
-              chores={todos}
-              onComplete={(choreId) => void completeTodo(userId, choreId)}
-              isCreating={isCreatingChore}
-              newChoreTitle={todoTitle}
-              onTitleChange={setTodoTitle}
-              onCreate={onCreateTodo}
-              onCancelCreate={() => {
-                setIsCreatingChore(false)
-                setTodoTitle('')
-              }}
-            />
+            <MyChoresPanel chores={todos} onComplete={(choreId) => void completeTodo(userId, choreId)} />
           </Stack>
         )}
 
         {activeNav === 1 && (
           <Stack spacing={0} sx={sectionStackSx}>
-            <MetroPivot
+            <IOSSegmentedControl
               value={betsTab}
-              labels={['quick', 'popular', 'mine']}
+              labels={['Quick', 'Popular', 'Mine']}
               onChange={setBetsTab}
               aria-label="Bets sections"
             />
@@ -270,46 +306,94 @@ function App() {
 
         {activeNav === 3 && (
           <Stack sx={sectionStackSx}>
-            <StorePanel balance={profile?.balance ?? 0} onBuy={onBuyStoreItem} />
+            <RewardsPanel
+              userId={userId}
+              balance={profile?.balance ?? 0}
+              userRewards={userRewards}
+              popularRewards={popularRewards}
+              onRedeem={onRedeemReward}
+              onAddToStore={onAddRewardToStore}
+            />
           </Stack>
         )}
 
         {activeNav === 4 && (
-          <Stack sx={sectionStackSx} spacing={2}>
-            <Box sx={{ bgcolor: 'background.paper', p: 2 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
-                signed in as
-              </Typography>
-              <Typography variant="subtitle1">{profile?.handle ?? 'player'}</Typography>
+          <Stack sx={sectionStackSx} spacing={0}>
+            <IOSGroupedSection title="Account">
+              <Box sx={{ px: 2, py: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                  Signed in as
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  {profile?.handle ?? 'Player'}
+                </Typography>
+              </Box>
+            </IOSGroupedSection>
+
+            <IOSGroupedSection title="Display Name" footer="This name appears on the leaderboard.">
+              <Box sx={{ px: 2, py: 1.5 }}>
+                <TextField
+                  placeholder="Your name"
+                  value={accountName}
+                  onChange={(event) => setAccountName(event.target.value)}
+                  fullWidth
+                  hiddenLabel
+                />
+              </Box>
+            </IOSGroupedSection>
+
+            <Box sx={{ px: 2, py: 1 }}>
+              <Button variant="contained" color="primary" fullWidth onClick={() => void onSaveAccountName()}>
+                Save Changes
+              </Button>
             </Box>
 
-            <TextField
-              label="display name"
-              value={accountName}
-              onChange={(event) => setAccountName(event.target.value)}
-              fullWidth
-            />
-
-            <Stack direction="row" spacing={1}>
-              <Button variant="contained" color="primary" onClick={() => void onSaveAccountName()} sx={{ flex: 1 }}>
-                save
+            <Box sx={{ px: 2, pt: 1 }}>
+              <Button variant="text" color="error" fullWidth onClick={() => signOut(auth)}>
+                Sign Out
               </Button>
-              <Button
-                variant="outlined"
-                color="inherit"
-                onClick={() => setAccountName(profile?.handle ?? '')}
-                sx={{ flex: 1, borderColor: 'divider' }}
-              >
-                reset
-              </Button>
-            </Stack>
-
-            <Button variant="text" color="error" onClick={() => signOut(auth)} sx={{ alignSelf: 'flex-start' }}>
-              sign out
-            </Button>
+            </Box>
           </Stack>
         )}
       </Container>
+
+      <CreateChorePanel
+        open={isCreatingChore}
+        title={todoTitle}
+        onClose={() => {
+          setIsCreatingChore(false)
+          setTodoTitle('')
+        }}
+        onTitleChange={setTodoTitle}
+        onSubmit={onCreateTodo}
+      />
+
+      <CreateRewardPanel
+        open={isCreatingReward}
+        title={rewardTitle}
+        cost={rewardCost}
+        onClose={() => {
+          setIsCreatingReward(false)
+          setRewardTitle('')
+          setRewardCost('500')
+        }}
+        onTitleChange={setRewardTitle}
+        onCostChange={setRewardCost}
+        onSubmit={onCreateReward}
+      />
+
+      <Snackbar
+        open={message !== null}
+        autoHideDuration={3500}
+        onClose={() => setMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        {message ? (
+          <Alert severity="info" onClose={() => setMessage(null)} sx={{ width: '100%', maxWidth: 360 }}>
+            {message}
+          </Alert>
+        ) : undefined}
+      </Snackbar>
 
       <BottomNav value={activeNav} onChange={setActiveNav} />
     </Box>

@@ -40,3 +40,22 @@ export interface LeaderboardEntry {
   handle: string;
   balance: number;
 }
+
+export interface Reward {
+  id: string;
+  creatorUserId: string;
+  title: string;
+  cost: number;
+  subscriberCount: number;
+  createdAt: string;
+}
+
+export interface UserReward {
+  id: string;
+  userId: string;
+  rewardId: string;
+  title: string;
+  cost: number;
+  creatorUserId: string;
+  createdAt: string;
+}

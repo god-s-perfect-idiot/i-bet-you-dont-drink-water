@@ -1,7 +1,8 @@
 import type { FormEvent } from 'react'
-import { Alert, Box, Button, Container, Stack, TextField, Typography } from '@mui/material'
-import { MetroPivot } from '../metro/MetroPivot'
-import { metroPageTitleSx } from '../../theme/metroStyles'
+import { Alert, Box, Button, Container, Snackbar, Stack, TextField, Typography } from '@mui/material'
+import { IOSSegmentedControl } from '../ios/IOSSegmentedControl'
+import { IOSGroupedSection } from '../ios/IOSGroupedSection'
+import { iosLargeTitleSx, iosTopInset } from '../../theme/iosStyles'
 
 type AuthMode = 'signin' | 'signup'
 
@@ -35,59 +36,71 @@ export function AuthPanel(props: AuthPanelProps) {
   const pivotIndex = authMode === 'signup' ? 0 : 1
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
-      <Box sx={{ height: 4, bgcolor: 'primary.main' }} />
-      <Container maxWidth="sm" sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', py: 4 }}>
-        <Typography component="h1" sx={{ ...metroPageTitleSx, mb: 1 }}>
-          i bet you don&apos;t drink water
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: 'background.default',
+        pt: iosTopInset,
+      }}
+    >
+      <Container maxWidth="sm" sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', py: 4, px: 2 }}>
+        <Typography component="h1" sx={{ ...iosLargeTitleSx, mb: 1 }}>
+          I Bet You Don&apos;t Drink Water
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          chores · stakes · leaderboard
+          Chores · stakes · leaderboard
         </Typography>
 
-        <MetroPivot
+        <IOSSegmentedControl
           value={pivotIndex}
-          labels={['new account', 'sign in']}
+          labels={['Sign Up', 'Sign In']}
           onChange={(index) => onModeChange(index === 0 ? 'signup' : 'signin')}
           aria-label="Authentication mode"
         />
 
-        <Stack component="form" spacing={3} onSubmit={onSubmit}>
-          {authMode === 'signup' ? (
-            <TextField
-              label="display name"
-              value={handle}
-              onChange={(event) => onHandleChange(event.target.value)}
-              required
-              fullWidth
-            />
-          ) : null}
-          <TextField
-            label="email"
-            type="email"
-            value={email}
-            onChange={(event) => onEmailChange(event.target.value)}
-            required
-            fullWidth
-          />
-          <TextField
-            label="password"
-            type="password"
-            value={password}
-            onChange={(event) => onPasswordChange(event.target.value)}
-            required
-            fullWidth
-          />
+        <Stack component="form" spacing={2} onSubmit={onSubmit}>
+          <IOSGroupedSection>
+            <Stack spacing={2} sx={{ p: 2 }}>
+              {authMode === 'signup' ? (
+                <TextField
+                  label="Display name"
+                  value={handle}
+                  onChange={(event) => onHandleChange(event.target.value)}
+                  required
+                  fullWidth
+                />
+              ) : null}
+              <TextField
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(event) => onEmailChange(event.target.value)}
+                required
+                fullWidth
+                autoComplete="email"
+              />
+              <TextField
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(event) => onPasswordChange(event.target.value)}
+                required
+                fullWidth
+                autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'}
+              />
+            </Stack>
+          </IOSGroupedSection>
+
           <Button type="submit" variant="contained" color="primary" size="large" fullWidth>
-            {authMode === 'signup' ? 'create account · 10,000' : 'sign in'}
+            {authMode === 'signup' ? 'Create Account · $10,000' : 'Sign In'}
           </Button>
         </Stack>
 
-        {message ? (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {message}
-          </Alert>
-        ) : null}
+        <Snackbar open={message !== null} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+          {message ? <Alert severity="error">{message}</Alert> : undefined}
+        </Snackbar>
       </Container>
     </Box>
   )

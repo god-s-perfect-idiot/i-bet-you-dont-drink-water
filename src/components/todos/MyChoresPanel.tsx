@@ -1,85 +1,58 @@
-import type { FormEvent } from 'react'
 import dayjs from 'dayjs'
-import { Box, Button, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material'
+import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
+import { Box, IconButton, List, ListItem, ListItemText, Typography } from '@mui/material'
 import type { Chore } from '../../types'
-import { metroListItemSx } from '../../theme/metroStyles'
+import { IOSGroupedSection } from '../ios/IOSGroupedSection'
+import { iosListCellSx } from '../../theme/iosStyles'
 
 interface MyChoresPanelProps {
   chores: Chore[]
   onComplete: (choreId: string) => void
-  isCreating: boolean
-  newChoreTitle: string
-  onTitleChange: (value: string) => void
-  onCreate: (event: FormEvent<HTMLFormElement>) => Promise<void>
-  onCancelCreate: () => void
 }
 
-export function MyChoresPanel({
-  chores,
-  onComplete,
-  isCreating,
-  newChoreTitle,
-  onTitleChange,
-  onCreate,
-  onCancelCreate,
-}: MyChoresPanelProps) {
+export function MyChoresPanel({ chores, onComplete }: MyChoresPanelProps) {
   return (
-    <Box>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-        {chores.length} active {chores.length === 1 ? 'chore' : 'chores'}
-      </Typography>
-      <List disablePadding>
-        {chores.map((todo) => (
-          <ListItem
-            key={todo.id}
-            sx={metroListItemSx}
-            secondaryAction={
-              todo.status === 'open' ? (
-                <Button onClick={() => onComplete(todo.id)} variant="contained" color="primary" size="small">
-                  done
-                </Button>
-              ) : null
-            }
-          >
-            <ListItemText
-              primary={todo.title}
-              secondary={`${todo.status} · ${dayjs(todo.expiresAt).format('MMM D · HH:mm')}`}
-              slotProps={{
-                primary: { variant: 'subtitle1', sx: { fontWeight: 400 } },
-                secondary: { variant: 'body2', sx: { color: 'text.secondary', textTransform: 'lowercase' } },
-              }}
-            />
-          </ListItem>
-        ))}
-        {isCreating ? (
-          <ListItem sx={{ ...metroListItemSx, display: 'block' }}>
-            <Stack component="form" onSubmit={onCreate} spacing={2.5}>
-              <TextField
-                autoFocus
-                fullWidth
-                label="chore title"
-                placeholder="drink 3 glasses of water"
-                value={newChoreTitle}
-                onChange={(event) => onTitleChange(event.target.value)}
-                required
+    <IOSGroupedSection
+      title="Active Chores"
+      footer={chores.length === 0 ? 'Tap + to add your first chore.' : `${chores.length} open · expires in 2 hours`}
+    >
+      {chores.length === 0 ? (
+        <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            No chores yet
+          </Typography>
+        </Box>
+      ) : (
+        <List disablePadding>
+          {chores.map((todo) => (
+            <ListItem
+              key={todo.id}
+              sx={iosListCellSx}
+              secondaryAction={
+                todo.status === 'open' ? (
+                  <IconButton
+                    edge="end"
+                    aria-label="Mark complete"
+                    onClick={() => onComplete(todo.id)}
+                    sx={{ color: 'success.main' }}
+                  >
+                    <CheckCircleOutlinedIcon />
+                  </IconButton>
+                ) : null
+              }
+            >
+              <ListItemText
+                primary={todo.title}
+                secondary={dayjs(todo.expiresAt).format('MMM D, h:mm A')}
+                slotProps={{
+                  primary: { variant: 'body1', sx: { fontWeight: 400 } },
+                  secondary: { variant: 'caption', sx: { color: 'text.secondary', textTransform: 'capitalize' } },
+                }}
               />
-              <Stack direction="row" spacing={1}>
-                <Button type="submit" variant="contained" color="primary" disabled={!newChoreTitle.trim()}>
-                  save
-                </Button>
-                <Button variant="text" color="inherit" onClick={onCancelCreate}>
-                  cancel
-                </Button>
-              </Stack>
-            </Stack>
-          </ListItem>
-        ) : null}
-      </List>
-      {chores.length === 0 && !isCreating ? (
-        <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-          no chores yet. tap + to add one.
-        </Typography>
-      ) : null}
-    </Box>
+            </ListItem>
+          ))}
+        </List>
+      )}
+    </IOSGroupedSection>
   )
 }

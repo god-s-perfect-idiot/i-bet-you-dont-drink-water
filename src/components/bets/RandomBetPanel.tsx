@@ -14,49 +14,52 @@ interface RandomBetPanelProps {
 
 export function RandomBetPanel({ candidate, stakeOptions, stake, onStakeChange, onBet, onSkip }: RandomBetPanelProps) {
   return (
-    <PanelFrame title="quick bet" badge="24h window">
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-        stake amount
-      </Typography>
-      <Stack direction="row" spacing={0.5} sx={{ mb: 2.5, flexWrap: 'wrap', gap: 0.5 }}>
-        {stakeOptions.map((value) => (
-          <Chip
-            key={value}
-            label={`$${value}`}
-            color={stake === value ? 'primary' : 'default'}
-            variant={stake === value ? 'filled' : 'outlined'}
-            onClick={() => onStakeChange(value)}
-            sx={
-              stake === value
-                ? undefined
-                : { borderColor: 'divider', color: 'text.secondary', bgcolor: 'transparent' }
-            }
-          />
-        ))}
-      </Stack>
+    <PanelFrame title="Quick Bet" badge="24h window">
+      <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          Stake amount
+        </Typography>
+        <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+          {stakeOptions.map((value) => (
+            <Chip
+              key={value}
+              label={`$${value}`}
+              color={stake === value ? 'primary' : 'default'}
+              variant={stake === value ? 'filled' : 'outlined'}
+              onClick={() => onStakeChange(value)}
+              sx={
+                stake === value
+                  ? undefined
+                  : { borderColor: 'divider', color: 'text.secondary', bgcolor: 'transparent' }
+              }
+            />
+          ))}
+        </Stack>
+      </Box>
+
       {candidate ? (
-        <Box sx={{ bgcolor: 'background.paper', p: 2 }}>
-          <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
+        <Box sx={{ px: 2, pb: 2 }}>
+          <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.25 }}>
             {candidate.title}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            expires {dayjs(candidate.expiresAt).format('MMM D · HH:mm')}
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+            Expires {dayjs(candidate.expiresAt).format('MMM D, h:mm A')}
           </Typography>
           <Stack spacing={1}>
             <Button fullWidth variant="contained" color="success" onClick={() => onBet('complete', candidate)}>
-              bet complete
+              Bet Complete
             </Button>
             <Button fullWidth variant="contained" color="error" onClick={() => onBet('fail', candidate)}>
-              bet fail
+              Bet Fail
             </Button>
-            <Button fullWidth variant="outlined" color="inherit" onClick={onSkip} sx={{ borderColor: 'divider' }}>
-              skip
+            <Button fullWidth variant="text" color="inherit" onClick={onSkip}>
+              Skip
             </Button>
           </Stack>
         </Box>
       ) : (
-        <Typography variant="body2" color="text.secondary">
-          no eligible chores right now.
+        <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 3, textAlign: 'center' }}>
+          No eligible chores right now.
         </Typography>
       )}
     </PanelFrame>

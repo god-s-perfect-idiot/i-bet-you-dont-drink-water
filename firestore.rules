@@ -5,11 +5,16 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
     match /users/{userId} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.auth.uid == userId;
-      allow update: if signedIn() && request.resource.data.diff(resource.data).changedKeys().hasOnly([
-        'balance'
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        'balance',
+        'handle'
       ]);
     }
 
@@ -34,7 +39,24 @@ service cloud.firestore {
 
     match /walletLedger/{entryId} {
       allow read: if signedIn() && resource.data.userId == request.auth.uid;
-      allow write: if false;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
     }
+
+    match /rewards/{rewardId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.creatorUserId == request.auth.uid;
+      allow update: if signedIn() && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        'subscriberCount'
+      ]);
+    }
+
+    match /userRewards/{userRewardId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
+    }
+
   }
 }

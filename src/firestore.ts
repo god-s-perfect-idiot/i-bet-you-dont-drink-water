@@ -24,7 +24,9 @@ import type {
   BetSide,
   Chore,
   LeaderboardEntry,
+  Reward,
   UserProfile,
+  UserReward,
 } from "./types";
 
 const STARTING_BALANCE = 10_000;
@@ -395,6 +397,155 @@ export async function settleExpiredChores(): Promise<void> {
       tx.update(choreDoc.ref, { settledAt: serverTimestamp() });
     });
   }
+}
+
+const rewardFromSnap = (id: string, data: Record<string, unknown>): Reward => ({
+  id,
+  creatorUserId: String(data.creatorUserId),
+  title: String(data.title),
+  cost: Number(data.cost ?? 0),
+  subscriberCount: Number(data.subscriberCount ?? 0),
+  createdAt: toIso(data.createdAt as Timestamp) ?? new Date().toISOString(),
+});
+
+const userRewardFromSnap = (
+  id: string,
+  data: Record<string, unknown>,
+): UserReward => ({
+  id,
+  userId: String(data.userId),
+  rewardId: String(data.rewardId),
+  title: String(data.title),
+  cost: Number(data.cost ?? 0),
+  creatorUserId: String(data.creatorUserId),
+  createdAt: toIso(data.createdAt as Timestamp) ?? new Date().toISOString(),
+});
+
+export async function createReward(
+  uid: string,
+  title: string,
+  cost: number,
+): Promise<void> {
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle) {
+    throw new Error("Reward title cannot be empty");
+  }
+  if (!Number.isFinite(cost) || cost <= 0) {
+    throw new Error("Cost must be greater than zero");
+  }
+
+  const rewardRef = await addDoc(collection(db, "rewards"), {
+    creatorUserId: uid,
+    title: trimmedTitle,
+    cost: Math.floor(cost),
+    subscriberCount: 0,
+    createdAt: serverTimestamp(),
+  });
+
+  await addDoc(collection(db, "userRewards"), {
+    userId: uid,
+    rewardId: rewardRef.id,
+    title: trimmedTitle,
+    cost: Math.floor(cost),
+    creatorUserId: uid,
+    createdAt: serverTimestamp(),
+  });
+}
+
+export function subscribeUserRewards(
+  uid: string,
+  onData: (rewards: UserReward[]) => void,
+): () => void {
+  const q = query(
+    collection(db, "userRewards"),
+    where("userId", "==", uid),
+    orderBy("createdAt", "desc"),
+  );
+  return onSnapshot(q, (snap) => {
+    onData(
+      snap.docs.map((entry) =>
+        userRewardFromSnap(entry.id, entry.data() as Record<string, unknown>),
+      ),
+    );
+  });
+}
+
+export function subscribePopularRewards(
+  onData: (rewards: Reward[]) => void,
+): () => void {
+  const q = query(
+    collection(db, "rewards"),
+    orderBy("subscriberCount", "desc"),
+    limit(50),
+  );
+  return onSnapshot(q, (snap) => {
+    onData(
+      snap.docs.map((entry) =>
+        rewardFromSnap(entry.id, entry.data() as Record<string, unknown>),
+      ),
+    );
+  });
+}
+
+export async function addRewardToStore(
+  uid: string,
+  reward: Reward,
+): Promise<void> {
+  const existingQ = query(
+    collection(db, "userRewards"),
+    where("userId", "==", uid),
+    where("rewardId", "==", reward.id),
+    limit(1),
+  );
+  const existing = await getDocs(existingQ);
+  if (!existing.empty) {
+    throw new Error("Reward is already in your store");
+  }
+
+  const rewardRef = doc(db, "rewards", reward.id);
+  await runTransaction(db, async (tx) => {
+    const rewardSnap = await tx.get(rewardRef);
+    if (!rewardSnap.exists()) {
+      throw new Error("Reward not found");
+    }
+    const data = rewardSnap.data();
+    tx.set(doc(collection(db, "userRewards")), {
+      userId: uid,
+      rewardId: reward.id,
+      title: String(data.title),
+      cost: Number(data.cost ?? 0),
+      creatorUserId: String(data.creatorUserId),
+      createdAt: serverTimestamp(),
+    });
+    if (String(data.creatorUserId) !== uid) {
+      tx.update(rewardRef, { subscriberCount: increment(1) });
+    }
+  });
+}
+
+export async function redeemReward(
+  uid: string,
+  userReward: UserReward,
+): Promise<void> {
+  const userRef = doc(db, "users", uid);
+  await runTransaction(db, async (tx) => {
+    const userSnap = await tx.get(userRef);
+    if (!userSnap.exists()) {
+      throw new Error("User not found");
+    }
+    const balance = Number(userSnap.data().balance ?? 0);
+    if (balance < userReward.cost) {
+      throw new Error("Not enough balance");
+    }
+    tx.update(userRef, { balance: increment(-userReward.cost) });
+    tx.set(doc(collection(db, "walletLedger")), {
+      userId: uid,
+      delta: -userReward.cost,
+      reason: "reward_redeem",
+      rewardId: userReward.rewardId,
+      createdAt: serverTimestamp(),
+    });
+  });
 }
 
 export function subscribeLeaderboard(

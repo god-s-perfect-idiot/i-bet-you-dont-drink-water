@@ -1,6 +1,7 @@
 import { Box, Stack, Typography } from '@mui/material'
 import type { Bet } from '../../types'
 import { PanelFrame } from '../shared/PanelFrame'
+import { iosListCellSx } from '../../theme/iosStyles'
 
 interface MyBetsPanelProps {
   bets: Bet[]
@@ -8,34 +9,26 @@ interface MyBetsPanelProps {
 
 export function MyBetsPanel({ bets }: MyBetsPanelProps) {
   return (
-    <PanelFrame title="my bets" badge={`${bets.length} open`}>
-      <Stack spacing={0}>
-        {bets.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-            you haven&apos;t placed any bets yet.
-          </Typography>
-        ) : (
-          bets.map((bet) => (
-            <Box
-              key={bet.id}
-              sx={{
-                py: 2,
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-                '&:last-child': { borderBottom: 'none' },
-              }}
-            >
-              <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
-                {bet.side === 'complete' ? 'will complete' : 'will fail'} · ${bet.stake}
+    <PanelFrame title="My Bets" badge={`${bets.length} open`}>
+      {bets.length === 0 ? (
+        <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 3, textAlign: 'center' }}>
+          You haven&apos;t placed any bets yet.
+        </Typography>
+      ) : (
+        <Stack spacing={0}>
+          {bets.map((bet) => (
+            <Box key={bet.id} sx={iosListCellSx}>
+              <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.25 }}>
+                {bet.side === 'complete' ? 'Will complete' : 'Will fail'} · ${bet.stake}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'lowercase' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
                 {bet.status}
-                {bet.payout ? ` · payout $${bet.payout}` : ''}
+                {bet.payout ? ` · Payout $${bet.payout}` : ''}
               </Typography>
             </Box>
-          ))
-        )}
-      </Stack>
+          ))}
+        </Stack>
+      )}
     </PanelFrame>
   )
 }

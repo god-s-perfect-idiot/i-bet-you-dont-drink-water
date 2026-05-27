@@ -1,59 +1,70 @@
 import { Box, List, ListItem, ListItemText, Typography } from '@mui/material'
 import type { LeaderboardEntry } from '../../types'
-import { metroListItemSx } from '../../theme/metroStyles'
+import { IOSGroupedSection } from '../ios/IOSGroupedSection'
+import { iosListCellSx } from '../../theme/iosStyles'
 
 interface LeaderboardPanelProps {
   leaderboard: LeaderboardEntry[]
   userRank: number
 }
 
-const rankAccents = ['#0078D7', '#00ABA9', '#8764B8', '#FF8C00', '#E81123']
+const medalColors = ['#FFD60A', '#C7C7CC', '#AC8E68']
 
 export function LeaderboardPanel({ leaderboard, userRank }: LeaderboardPanelProps) {
   return (
     <Box>
       <Box
         sx={{
-          bgcolor: 'primary.main',
-          color: 'primary.contrastText',
-          p: 2,
-          mb: 2,
+          background: 'linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%)',
+          borderRadius: '12px',
+          color: '#FFFFFF',
+          p: 2.5,
+          mb: 2.5,
         }}
       >
         <Typography variant="caption" sx={{ opacity: 0.85, display: 'block', mb: 0.5 }}>
-          your rank
+          Your Rank
         </Typography>
-        <Typography variant="h5" sx={{ fontWeight: 200 }}>
-          {userRank > 0 ? `#${userRank}` : 'unranked'}
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          {userRank > 0 ? `#${userRank}` : 'Unranked'}
         </Typography>
       </Box>
 
-      <Typography variant="subtitle2" sx={{ color: 'primary.main', mb: 1 }}>
-        top 20
-      </Typography>
-
-      <List disablePadding>
-        {leaderboard.map((entry, index) => (
-          <ListItem
-            key={entry.id}
-            sx={{
-              ...metroListItemSx,
-              borderLeft: '4px solid',
-              borderLeftColor: rankAccents[index % rankAccents.length],
-              pl: 1.5,
-            }}
-          >
-            <ListItemText
-              primary={`${index + 1}. ${entry.handle}`}
-              secondary={`$${entry.balance.toLocaleString()}`}
-              slotProps={{
-                primary: { variant: 'subtitle1', sx: { fontWeight: 400 } },
-                secondary: { variant: 'body2', sx: { color: 'text.secondary' } },
+      <IOSGroupedSection title="Top 20">
+        <List disablePadding>
+          {leaderboard.map((entry, index) => (
+            <ListItem
+              key={entry.id}
+              sx={{
+                ...iosListCellSx,
+                ...(index < 3 ? { bgcolor: 'rgba(255,255,255,0.03)' } : {}),
               }}
-            />
-          </ListItem>
-        ))}
-      </List>
+            >
+              <Typography
+                component="span"
+                sx={{
+                  width: 28,
+                  fontWeight: 600,
+                  fontSize: '0.9375rem',
+                  color: index < 3 ? medalColors[index] : 'text.secondary',
+                  flexShrink: 0,
+                }}
+              >
+                {index + 1}
+              </Typography>
+              <ListItemText
+                primary={entry.handle}
+                secondary={`$${entry.balance.toLocaleString()}`}
+                sx={{ ml: 1 }}
+                slotProps={{
+                  primary: { variant: 'body1', sx: { fontWeight: 500 } },
+                  secondary: { variant: 'caption', sx: { color: 'text.secondary' } },
+                }}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </IOSGroupedSection>
     </Box>
   )
 }
