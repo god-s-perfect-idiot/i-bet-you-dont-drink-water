@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == userId;
+      allow update: if signedIn() && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        'balance'
+      ]);
+    }
+
+    match /chores/{choreId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerUserId == request.auth.uid;
+      allow update: if signedIn() && (
+        resource.data.ownerUserId == request.auth.uid ||
+        request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'totalOnComplete', 'totalOnFail', 'totalPool', 'settledAt'
+        ])
+      );
+    }
+
+    match /bets/{betId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.bettorUserId == request.auth.uid;
+      allow update: if signedIn() && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        'status', 'payout', 'settledAt'
+      ]);
+    }
+
+    match /walletLedger/{entryId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "I Bet You Dont Drink Water",
+  "short_name": "WaterBets",
+  "description": "Create chores, bet on outcomes, and climb the leaderboard.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
