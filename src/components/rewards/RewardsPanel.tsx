@@ -50,6 +50,7 @@ export function RewardsPanel({
     <Box>
       <TextField
         fullWidth
+        hiddenLabel
         placeholder="Search rewards"
         value={searchQuery}
         onChange={(event) => setSearchQuery(event.target.value)}
@@ -62,7 +63,7 @@ export function RewardsPanel({
             ),
           },
         }}
-        sx={{ mb: 2 }}
+        sx={{ mb: 2.25 }}
       />
 
       <IOSSegmentedControl

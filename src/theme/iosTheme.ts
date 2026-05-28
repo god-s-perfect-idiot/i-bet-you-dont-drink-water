@@ -1,67 +1,70 @@
 import { createTheme, alpha } from '@mui/material/styles'
+import { iosTabBarHeight, paperThemeColors } from './iosStyles'
 
 /** iOS Human Interface Guidelines — dark mode, SF typography, grouped surfaces. */
 export const iosTheme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: {
-      main: '#0A84FF',
-      light: '#409CFF',
-      dark: '#0066CC',
+      main: paperThemeColors.red,
+      light: paperThemeColors.redBright,
+      dark: '#930005',
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#5E5CE6',
-      light: '#7D7AFF',
-      dark: '#3634A3',
-      contrastText: '#FFFFFF',
+      main: paperThemeColors.yellow,
+      light: '#FFE08B',
+      dark: '#6E5700',
+      contrastText: paperThemeColors.ink,
     },
     success: {
-      main: '#30D158',
-      contrastText: '#000000',
+      main: '#0079C1',
+      contrastText: '#FFFFFF',
     },
     error: {
-      main: '#FF453A',
+      main: '#BA1A1A',
       contrastText: '#FFFFFF',
     },
     warning: {
-      main: '#FFD60A',
-      contrastText: '#000000',
+      main: '#F1C100',
+      contrastText: paperThemeColors.ink,
     },
     background: {
-      default: '#000000',
-      paper: '#1C1C1E',
+      default: paperThemeColors.cream,
+      paper: paperThemeColors.paperElevated,
     },
     text: {
-      primary: '#FFFFFF',
-      secondary: '#8E8E93',
-      disabled: '#636366',
+      primary: paperThemeColors.ink,
+      secondary: '#5D3F3B',
+      disabled: '#926F6A',
     },
-    divider: alpha('#545456', 0.65),
+    divider: alpha(paperThemeColors.ink, 0.22),
   },
   shape: {
-    borderRadius: 10,
+    borderRadius: 12,
   },
   typography: {
-    fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif',
+    fontFamily: '"Rubik", "Inter", "Helvetica Neue", Arial, sans-serif',
     fontWeightLight: 300,
     fontWeightRegular: 400,
     fontWeightMedium: 500,
     fontWeightBold: 600,
     h4: {
-      fontWeight: 700,
+      fontFamily: '"Bricolage Grotesque", "Rubik", "Helvetica Neue", Arial, sans-serif',
+      fontWeight: 800,
       fontSize: '2.125rem',
-      lineHeight: 1.2,
-      letterSpacing: '0.01em',
+      lineHeight: 1.1,
+      letterSpacing: '-0.02em',
     },
     h5: {
-      fontWeight: 600,
+      fontFamily: '"Bricolage Grotesque", "Rubik", "Helvetica Neue", Arial, sans-serif',
+      fontWeight: 800,
       fontSize: '1.375rem',
-      lineHeight: 1.25,
+      lineHeight: 1.2,
     },
     h6: {
-      fontWeight: 600,
+      fontFamily: '"Bricolage Grotesque", "Rubik", "Helvetica Neue", Arial, sans-serif',
+      fontWeight: 700,
       fontSize: '1.0625rem',
       lineHeight: 1.3,
     },
@@ -71,11 +74,11 @@ export const iosTheme = createTheme({
       lineHeight: 1.35,
     },
     subtitle2: {
-      fontWeight: 400,
+      fontWeight: 700,
       fontSize: '0.8125rem',
       lineHeight: 1.3,
-      textTransform: 'none',
-      letterSpacing: 0,
+      textTransform: 'uppercase',
+      letterSpacing: '0.04em',
     },
     body1: {
       fontWeight: 400,
@@ -88,10 +91,10 @@ export const iosTheme = createTheme({
       lineHeight: 1.35,
     },
     button: {
-      fontWeight: 600,
-      fontSize: '1.0625rem',
-      textTransform: 'none',
-      letterSpacing: 0,
+      fontWeight: 700,
+      fontSize: '0.9375rem',
+      textTransform: 'uppercase',
+      letterSpacing: '0.02em',
     },
     caption: {
       fontWeight: 400,
@@ -103,11 +106,14 @@ export const iosTheme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: '#000000',
-          WebkitOverflowScrolling: 'touch',
+          backgroundColor: paperThemeColors.cream,
+          backgroundImage:
+            'radial-gradient(rgba(28,27,27,0.045) 0.8px, transparent 0.8px), linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 40%)',
+          backgroundSize: '8px 8px, auto',
+          color: paperThemeColors.ink,
         },
         '::selection': {
-          backgroundColor: '#0A84FF',
+          backgroundColor: paperThemeColors.red,
           color: '#FFFFFF',
         },
       },
@@ -128,7 +134,7 @@ export const iosTheme = createTheme({
     MuiToolbar: {
       styleOverrides: {
         root: {
-          minHeight: 44,
+          minHeight: 52,
         },
       },
     },
@@ -138,27 +144,32 @@ export const iosTheme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          boxShadow: 'none',
-          minHeight: 50,
+          borderRadius: 14,
+          border: `3px solid ${paperThemeColors.ink}`,
+          boxShadow: `4px 4px 0 ${paperThemeColors.ink}`,
+          minHeight: 48,
           paddingInline: 20,
-          textTransform: 'none',
-          fontWeight: 600,
+          fontWeight: 700,
           '&:hover': {
+            boxShadow: `4px 4px 0 ${paperThemeColors.ink}`,
+          },
+          '&:active': {
+            transform: 'translate(4px, 4px)',
             boxShadow: 'none',
           },
         },
         contained: {
-          boxShadow: 'none',
+          boxShadow: `4px 4px 0 ${paperThemeColors.ink}`,
           '&:hover': {
-            boxShadow: 'none',
+            boxShadow: `4px 4px 0 ${paperThemeColors.ink}`,
           },
         },
         outlined: {
-          borderWidth: 1,
-          borderColor: alpha('#545456', 0.65),
+          borderWidth: 3,
+          borderColor: paperThemeColors.ink,
+          backgroundColor: paperThemeColors.paperElevated,
           '&:hover': {
-            borderWidth: 1,
+            borderWidth: 3,
           },
         },
         sizeSmall: {
@@ -172,7 +183,8 @@ export const iosTheme = createTheme({
     MuiIconButton: {
       styleOverrides: {
         root: {
-          borderRadius: '50%',
+          borderRadius: 12,
+          border: `2px solid ${paperThemeColors.ink}`,
         },
       },
     },
@@ -182,10 +194,10 @@ export const iosTheme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          backgroundImage: 'none',
-          backgroundColor: '#1C1C1E',
-          boxShadow: 'none',
+          borderRadius: 16,
+          border: `3px solid ${paperThemeColors.ink}`,
+          backgroundColor: paperThemeColors.paperElevated,
+          boxShadow: `4px 4px 0 ${paperThemeColors.ink}`,
         },
       },
     },
@@ -195,19 +207,22 @@ export const iosTheme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 16,
           backgroundImage: 'none',
-          boxShadow: 'none',
+          border: `3px solid ${paperThemeColors.ink}`,
+          boxShadow: `4px 4px 0 ${paperThemeColors.ink}`,
         },
       },
     },
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 999,
+          border: `2px solid ${paperThemeColors.ink}`,
           height: 34,
-          fontWeight: 500,
+          fontWeight: 700,
           fontSize: '0.9375rem',
+          boxShadow: `2px 2px 0 ${paperThemeColors.ink}`,
         },
         filled: {
           fontWeight: 600,
@@ -217,7 +232,7 @@ export const iosTheme = createTheme({
     MuiTabs: {
       styleOverrides: {
         root: {
-          minHeight: 32,
+          minHeight: 40,
         },
         indicator: {
           display: 'none',
@@ -230,12 +245,12 @@ export const iosTheme = createTheme({
           textTransform: 'none',
           fontWeight: 500,
           fontSize: '0.8125rem',
-          minHeight: 32,
+          minHeight: 38,
           minWidth: 0,
           padding: '6px 12px',
           borderRadius: 8,
           opacity: 1,
-          color: '#FFFFFF',
+          color: paperThemeColors.ink,
           '&.Mui-selected': {
             fontWeight: 600,
           },
@@ -249,31 +264,54 @@ export const iosTheme = createTheme({
       styleOverrides: {
         root: {
           '& .MuiFilledInput-root': {
-            borderRadius: 10,
-            backgroundColor: '#2C2C2E',
+            borderRadius: 12,
+            backgroundColor: '#FFFFFF',
+            border: `3px solid ${paperThemeColors.ink}`,
+            boxShadow: 'inset 3px 3px 0 rgba(28,27,27,0.14)',
             '&:hover': {
-              backgroundColor: '#3A3A3C',
+              backgroundColor: '#FFFFFF',
             },
             '&.Mui-focused': {
-              backgroundColor: '#2C2C2E',
+              backgroundColor: '#FFFFFF',
             },
             '&::before, &::after': {
               display: 'none',
             },
+            '& .MuiFilledInput-input': {
+              // Keep vertical space for the floating label in filled inputs.
+              paddingTop: 24,
+              paddingBottom: 8,
+              paddingLeft: 12,
+              paddingRight: 12,
+            },
+            '&.MuiInputBase-hiddenLabel > .MuiInputBase-input': {
+              paddingTop: 12,
+              paddingBottom: 12,
+            },
           },
           '& .MuiInputLabel-root': {
             fontSize: '0.9375rem',
-            color: '#8E8E93',
+            color: '#5D3F3B',
           },
+        },
+      },
+    },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          marginTop: 6,
+          marginLeft: 0,
+          marginRight: 0,
+          lineHeight: 1.3,
+          position: 'static',
         },
       },
     },
     MuiBottomNavigation: {
       styleOverrides: {
         root: {
-          height: 49,
+          minHeight: iosTabBarHeight,
           backgroundColor: 'transparent',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         },
       },
     },
@@ -283,11 +321,11 @@ export const iosTheme = createTheme({
           minWidth: 0,
           maxWidth: 'none',
           flex: 1,
-          color: '#8E8E93',
-          paddingTop: 4,
-          paddingBottom: 2,
+          color: '#926F6A',
+          paddingTop: 8,
+          paddingBottom: 6,
           '&.Mui-selected': {
-            color: '#0A84FF',
+            color: paperThemeColors.red,
           },
         },
         label: {
@@ -317,9 +355,10 @@ export const iosTheme = createTheme({
     MuiDialog: {
       styleOverrides: {
         paper: {
-          borderRadius: 14,
-          backgroundColor: '#1C1C1E',
-          boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+          borderRadius: 16,
+          backgroundColor: paperThemeColors.paperElevated,
+          border: `3px solid ${paperThemeColors.ink}`,
+          boxShadow: `8px 8px 0 ${paperThemeColors.ink}`,
           margin: 16,
         },
       },
@@ -328,15 +367,17 @@ export const iosTheme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 12,
-          backgroundColor: '#2C2C2E',
-          color: '#FFFFFF',
+          border: `3px solid ${paperThemeColors.ink}`,
+          backgroundColor: '#FFE08B',
+          color: paperThemeColors.ink,
+          boxShadow: `4px 4px 0 ${paperThemeColors.ink}`,
         },
       },
     },
     MuiSnackbar: {
       styleOverrides: {
         root: {
-          bottom: 'calc(49px + env(safe-area-inset-bottom, 0px) + 12px) !important',
+          bottom: `calc(${iosTabBarHeight}px + env(safe-area-inset-bottom, 0px) + 12px) !important`,
         },
       },
     },

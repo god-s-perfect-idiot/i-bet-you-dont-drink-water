@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&amp;family=Rubik:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+        .paper-stack {
+            box-shadow: 4px 4px 0px 0px rgba(0,0,0,1);
+        }
+        .paper-stack-active {
+            box-shadow: 0px 0px 0px 0px rgba(0,0,0,1);
+            transform: translate(4px, 4px);
+        }
+        .inner-shadow-recessed {
+            box-shadow: inset 3px 3px 0px rgba(0,0,0,0.2);
+        }
+        @keyframes bounce-custom {
+            0%, 100% { transform: translateY(0) rotate(-1deg); }
+            50% { transform: translateY(-10px) rotate(1deg); }
+        }
+        .animate-bounce-paper {
+            animation: bounce-custom 2s ease-in-out infinite;
+        }
+        @keyframes confetti-fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            animation: confetti-fall 4s linear infinite;
+        }
+        .card-reveal-sequence {
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#ffe08b",
+                        "on-error-container": "#93000a",
+                        "on-background": "#1c1b1b",
+                        "surface-container-highest": "#e5e2e1",
+                        "primary": "#bc000a",
+                        "surface": "#fcf9f8",
+                        "surface-container-low": "#f6f3f2",
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#c0000a",
+                        "on-primary-fixed": "#410001",
+                        "tertiary-fixed-dim": "#99cbff",
+                        "outline": "#926f6a",
+                        "on-primary-container": "#fffbff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-high": "#eae7e7",
+                        "tertiary-container": "#0079c1",
+                        "tertiary": "#00609a",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#fdfcff",
+                        "on-tertiary-fixed": "#001d34",
+                        "tertiary-fixed": "#cfe5ff",
+                        "surface-dim": "#dcd9d9",
+                        "surface-container": "#f0eded",
+                        "on-surface": "#1c1b1b",
+                        "on-tertiary-fixed-variant": "#004a78",
+                        "on-secondary": "#ffffff",
+                        "secondary-container": "#fecb00",
+                        "on-secondary-fixed": "#241a00",
+                        "on-primary": "#ffffff",
+                        "inverse-primary": "#ffb4aa",
+                        "secondary": "#745b00",
+                        "outline-variant": "#e7bdb7",
+                        "surface-bright": "#fcf9f8",
+                        "primary-container": "#e2241f",
+                        "on-primary-fixed-variant": "#930005",
+                        "on-secondary-container": "#6e5700",
+                        "secondary-fixed-dim": "#f1c100",
+                        "inverse-surface": "#313030",
+                        "surface-variant": "#e5e2e1",
+                        "on-surface-variant": "#5d3f3b",
+                        "primary-fixed": "#ffdad5",
+                        "on-secondary-fixed-variant": "#584400",
+                        "primary-fixed-dim": "#ffb4aa",
+                        "background": "#fcf9f8",
+                        "inverse-on-surface": "#f3f0ef",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-offset": "4px",
+                        "gutter": "12px",
+                        "container-margin": "20px",
+                        "card-padding": "16px",
+                        "base": "8px"
+                    },
+                    "fontFamily": {
+                        "label-bold": ["Rubik"],
+                        "headline-md": ["Bricolage Grotesque"],
+                        "headline-lg-mobile": ["Bricolage Grotesque"],
+                        "headline-lg": ["Bricolage Grotesque"],
+                        "body-lg": ["Rubik"],
+                        "display-lg": ["Bricolage Grotesque"],
+                        "body-md": ["Rubik"]
+                    },
+                    "fontSize": {
+                        "label-bold": ["14px", {"lineHeight": "20px", "fontWeight": "700"}],
+                        "headline-md": ["24px", {"lineHeight": "28px", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "32px", "fontWeight": "800"}],
+                        "headline-lg": ["32px", {"lineHeight": "36px", "fontWeight": "800"}],
+                        "body-lg": ["18px", {"lineHeight": "26px", "fontWeight": "500"}],
+                        "display-lg": ["48px", {"lineHeight": "52px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen overflow-hidden font-body-md select-none">
+<!-- Top App Bar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-container-margin py-2 border-b-[3px] border-on-background bg-surface dark:bg-surface-dim shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+<div class="flex items-center gap-2">
+<div class="w-10 h-10 rounded-full border-[3px] border-on-background bg-secondary-container flex items-center justify-center overflow-hidden">
+<img alt="Mascot Sticker" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAejpBcLirf8o740MYgVgQnHogZ-EZyao5R1787mC7xL-bO7IK85H_3akKHFUTP59-kV2zyB9d1oaql1LakFi2qS8HGvKd4tutOTPJEhWDyM7V2eFNSBRY-yKwnLSJmVZRuja2w8CX5cgOhn5NYqaUnqioW2gW_DZqyFjeceRjVENn1dN4YEh8_GK88xfy4O8SK4BgfvsW_HHkT4MjfBFSXyENne5_bBY3N5f2rF8z5LuAvdAW0g6AK7474C8V-2NUHMWde8FWHQPU"/>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary dark:text-primary-fixed uppercase tracking-tight">Neo Pachinko</h1>
+</div>
+<div class="bg-surface-container-high px-3 py-1 rounded-lg border-[2px] border-on-background flex items-center gap-2">
+<span class="font-label-bold text-label-bold text-primary">1,250 B / 50 G</span>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="relative w-full h-screen flex flex-col items-center justify-center pt-20 px-container-margin overflow-hidden">
+<!-- Background Streamers & Confetti Canvas -->
+<div class="absolute inset-0 pointer-events-none z-0" id="confetti-container">
+<!-- Streamers -->
+<div class="absolute top-0 left-1/4 w-4 h-64 bg-primary-container border-x-2 border-on-background opacity-20 -rotate-12"></div>
+<div class="absolute top-0 right-1/4 w-3 h-48 bg-secondary-container border-x-2 border-on-background opacity-20 rotate-6"></div>
+<div class="absolute top-20 left-10 w-2 h-32 bg-tertiary-container border-x-2 border-on-background opacity-20 rotate-45"></div>
+</div>
+<!-- The Gacha Sequence Container -->
+<div class="relative w-full max-w-[400px] aspect-square flex items-center justify-center z-10" id="gacha-stage">
+<!-- The Mystery Box (Initial State) -->
+<div class="relative cursor-pointer group transition-transform active:scale-95 duration-75" id="mystery-box">
+<!-- Box Base (Corrugated Texture Simulation) -->
+<div class="w-64 h-64 bg-[#d2b48c] border-[4px] border-on-background rounded-xl paper-stack flex items-center justify-center relative overflow-hidden">
+<!-- Texture lines -->
+<div class="absolute inset-0 flex flex-col gap-2 opacity-10 pointer-events-none p-2">
+<div class="w-full h-[2px] bg-black"></div><div class="w-full h-[2px] bg-black"></div><div class="w-full h-[2px] bg-black"></div>
+<div class="w-full h-[2px] bg-black"></div><div class="w-full h-[2px] bg-black"></div><div class="w-full h-[2px] bg-black"></div>
+<div class="w-full h-[2px] bg-black"></div><div class="w-full h-[2px] bg-black"></div><div class="w-full h-[2px] bg-black"></div>
+</div>
+<!-- Giant Question Mark Sticker -->
+<div class="bg-white border-[3px] border-on-background w-32 h-32 rounded-full flex items-center justify-center rotate-[-4deg] paper-stack group-hover:rotate-[4deg] transition-transform duration-300">
+<span class="text-primary font-display-lg text-[80px]">?</span>
+</div>
+<!-- Packaging Tape Effect -->
+<div class="absolute top-1/2 -translate-y-1/2 left-0 w-full h-8 bg-surface-variant/50 border-y-[2px] border-on-background/20 pointer-events-none"></div>
+</div>
+<!-- Bouncy Reveal Prompt -->
+<div class="absolute -bottom-16 left-1/2 -translate-x-1/2 whitespace-nowrap">
+<p class="font-headline-lg-mobile text-headline-lg-mobile text-on-background animate-bounce-paper drop-shadow-[2px_2px_0px_rgba(255,255,255,1)]">
+                        TAP TO REVEAL!
+                    </p>
+</div>
+</div>
+<!-- The Summoned Card (Hidden Initially) -->
+<div class="absolute inset-0 flex flex-col items-center justify-center scale-0 opacity-0 card-reveal-sequence" id="reward-card">
+<div class="w-72 aspect-[2/3] bg-surface-lowest border-[4px] border-on-background rounded-2xl p-4 paper-stack flex flex-col gap-3 relative overflow-hidden">
+<!-- Sticker Border -->
+<div class="absolute inset-[-4px] border-[6px] border-white/50 rounded-2xl pointer-events-none"></div>
+<!-- Card Art Wrapper -->
+<div class="w-full aspect-square border-[3px] border-on-background rounded-xl overflow-hidden bg-tertiary-fixed relative">
+<img class="w-full h-full object-cover" data-alt="A whimsical digital illustration of a legendary golden pachinko ball character with large expressive eyes and a tiny paper crown, rendered in a clean paper-craft aesthetic with bold outlines and flat vibrant colors, set against a soft blue and white striped background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXNxl6rmlkCxLUlqTIWO981odH-SPQRc7OexZFL85g6E4MlaXMlTxf5kOqIpgVDuvHYm2wMEaVWMLUSnTRCmaFPY0Zw5DFZGc7jhd3lQRPlkBbtEVtxFUsTrl_OU2d2a77_D6btAGVsEgsNw3SNibivXOdpq0eeia146BaH9PFMwKfRQqq8prnlPqjZkp8Qxurmj3K71dENDX4WUifQKXuUhVYMageX79WCsSMtDBM_BoUJ4EgNCRrYzhBSYCBc1ZkEbHXMTnAcqA"/>
+<div class="absolute top-2 right-2 bg-secondary-container border-[2px] border-on-background px-2 py-1 rounded-md rotate-6 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+<span class="font-label-bold text-[10px] text-on-secondary-container uppercase">Legendary</span>
+</div>
+</div>
+<!-- Card Info -->
+<div class="flex flex-col gap-1 text-center">
+<h3 class="font-headline-md text-headline-md text-on-surface uppercase">Golden Spirit</h3>
+<p class="font-body-md text-on-surface-variant leading-tight">Increases jackpot odds by 5% for the next 10 spins.</p>
+</div>
+<!-- Stats -->
+<div class="mt-auto grid grid-cols-2 gap-2">
+<div class="bg-surface-container border-[2px] border-on-background p-1 text-center rounded-lg">
+<span class="font-label-bold text-xs uppercase opacity-60">Value</span>
+<div class="font-headline-md text-primary">850</div>
+</div>
+<div class="bg-surface-container border-[2px] border-on-background p-1 text-center rounded-lg">
+<span class="font-label-bold text-xs uppercase opacity-60">Level</span>
+<div class="font-headline-md text-tertiary">MAX</div>
+</div>
+</div>
+</div>
+<!-- Action Button After Reveal -->
+<button class="mt-8 bg-primary-container text-on-primary-container px-10 py-4 border-[3px] border-on-background rounded-xl font-headline-md paper-stack active:paper-stack-active transition-all" id="collect-btn">
+                    COLLECT REWARD
+                </button>
+</div>
+</div>
+</main>
+<!-- Bottom Nav Bar -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-[480px] z-50 flex justify-around items-center py-2 px-4 bg-surface border-[3px] border-on-background rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+<div class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest transition-transform active:translate-x-[4px] active:translate-y-[4px] active:shadow-none duration-75">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-bold text-label-bold">Lobby</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-lg p-2 border-[2px] border-on-background scale-110 -rotate-2 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none duration-75">
+<span class="material-symbols-outlined" data-icon="casino" style="font-variation-settings: 'FILL' 1;">casino</span>
+<span class="font-label-bold text-label-bold">Machines</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest transition-transform active:translate-x-[4px] active:translate-y-[4px] active:shadow-none duration-75">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-label-bold text-label-bold">Vault</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest transition-transform active:translate-x-[4px] active:translate-y-[4px] active:shadow-none duration-75">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-bold text-label-bold">Profile</span>
+</div>
+</nav>
+<script>
+        // Micro-interactions and Animation Logic
+        const box = document.getElementById('mystery-box');
+        const card = document.getElementById('reward-card');
+        const stage = document.getElementById('gacha-stage');
+        const confettiContainer = document.getElementById('confetti-container');
+
+        // Confetti Generator
+        function createConfetti() {
+            const colors = ['#bc000a', '#fecb00', '#00609a', '#745b00', '#ffffff'];
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    const el = document.createElement('div');
+                    el.className = 'confetti border-[1.5px] border-on-background';
+                    el.style.left = Math.random() * 100 + 'vw';
+                    el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    el.style.borderRadius = Math.random() > 0.5 ? '2px' : '999px';
+                    el.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                    confettiContainer.appendChild(el);
+                    
+                    // Remove after animation
+                    setTimeout(() => el.remove(), 4000);
+                }, i * 50);
+            }
+        }
+
+        // Reveal Sequence
+        box.addEventListener('click', () => {
+            // Shake the stage
+            stage.classList.add('animate-ping');
+            setTimeout(() => stage.classList.remove('animate-ping'), 150);
+
+            // Transition Box out
+            box.style.transition = 'all 0.4s cubic-bezier(0.6, -0.28, 0.735, 0.045)';
+            box.style.transform = 'scale(0) rotate(20deg)';
+            box.style.opacity = '0';
+
+            // Transition Card in
+            setTimeout(() => {
+                box.style.display = 'none';
+                card.style.display = 'flex';
+                requestAnimationFrame(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'scale(1) rotate(-1deg)';
+                    createConfetti();
+                });
+            }, 400);
+        });
+
+        // Collect Logic
+        document.getElementById('collect-btn').addEventListener('click', () => {
+            card.style.transform = 'scale(1.2) translateY(-200%) rotate(10deg)';
+            card.style.opacity = '0';
+            setTimeout(() => {
+                window.location.reload(); // Simple reset for demo
+            }, 600);
+        });
+
+        // Initialize Material Symbols Logic (as defined in mandate)
+        document.querySelectorAll('[data-icon]').forEach(el => {
+            const iconName = el.getAttribute('data-icon');
+            el.classList.add('material-symbols-outlined');
+            el.innerText = iconName;
+        });
+    </script>
+</body></html>

@@ -6,20 +6,21 @@ interface IOSGroupedSectionProps {
   title?: string
   footer?: string
   children: ReactNode
+  bare?: boolean
   sx?: object
 }
 
-export function IOSGroupedSection({ title, footer, children, sx }: IOSGroupedSectionProps) {
+export function IOSGroupedSection({ title, footer, children, bare, sx }: IOSGroupedSectionProps) {
   return (
-    <Box sx={{ mb: 2.5, ...sx }}>
+    <Box sx={{ mb: 2.75, ...sx }}>
       {title ? (
         <Typography component="h3" sx={iosSectionHeaderSx}>
           {title}
         </Typography>
       ) : null}
-      <Box sx={iosGroupedCardSx}>{children}</Box>
+      <Box sx={bare ? undefined : iosGroupedCardSx}>{children}</Box>
       {footer ? (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', px: 2, pt: 1 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', px: 1, pt: 1.1, fontWeight: 500 }}>
           {footer}
         </Typography>
       ) : null}

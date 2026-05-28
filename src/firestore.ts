@@ -18,6 +18,11 @@ import {
 } from "firebase/firestore";
 import type { DocumentReference } from "firebase/firestore";
 import { db } from "./firebase";
+import {
+  debugBetSummary,
+  debugChoreSummary,
+  debugLog,
+} from "./debugLog";
 import { getStoreItemPrice } from "./storeItems";
 import type {
   Bet,
@@ -30,6 +35,7 @@ import type {
 } from "./types";
 
 const STARTING_BALANCE = 10_000;
+const CHORE_COMPLETION_REWARD = 50;
 type BetSettlementDoc = {
   bettorUserId: string;
   side: BetSide;
@@ -39,6 +45,15 @@ type BetSettlementDoc = {
 
 const toIso = (value: Timestamp | null | undefined): string | null =>
   value ? value.toDate().toISOString() : null;
+
+function isPermissionDeniedError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "permission-denied"
+  );
+}
 
 const choreFromSnap = (id: string, data: Record<string, unknown>): Chore => ({
   id,
@@ -133,11 +148,15 @@ export function subscribeTodos(
     orderBy("expiresAt", "asc"),
   );
   return onSnapshot(q, (snap) => {
-    onData(
-      snap.docs.map((entry) =>
-        choreFromSnap(entry.id, entry.data() as Record<string, unknown>),
-      ),
+    const chores = snap.docs.map((entry) =>
+      choreFromSnap(entry.id, entry.data() as Record<string, unknown>),
     );
+    debugLog("chore", "subscribeTodos snapshot", {
+      uid,
+      count: chores.length,
+      chores: debugChoreSummary(chores),
+    });
+    onData(chores);
   });
 }
 
@@ -146,7 +165,7 @@ export async function createTodo(
   title: string,
   expiresAtIso: string,
 ): Promise<void> {
-  await addDoc(collection(db, "chores"), {
+  const ref = await addDoc(collection(db, "chores"), {
     ownerUserId: uid,
     title: title.trim(),
     expiresAt: Timestamp.fromDate(new Date(expiresAtIso)),
@@ -158,21 +177,79 @@ export async function createTodo(
     totalPool: 0,
     createdAt: serverTimestamp(),
   });
+  debugLog("chore", "createTodo", {
+    choreId: ref.id,
+    uid,
+    title: title.trim(),
+    expiresAt: expiresAtIso,
+  });
 }
 
 export async function completeTodo(
   uid: string,
   choreId: string,
 ): Promise<void> {
-  const ref = doc(db, "chores", choreId);
-  const snap = await getDoc(ref);
-  if (!snap.exists() || snap.data().ownerUserId !== uid) {
-    return;
+  debugLog("chore", "completeTodo start", { uid, choreId });
+  const choreRef = doc(db, "chores", choreId);
+  const userRef = doc(db, "users", uid);
+  try {
+    await runTransaction(db, async (tx) => {
+      const [choreSnap, userSnap] = await Promise.all([
+        tx.get(choreRef),
+        tx.get(userRef),
+      ]);
+      if (!choreSnap.exists()) {
+        throw new Error("Chore not found");
+      }
+      if (!userSnap.exists()) {
+        throw new Error("User not found");
+      }
+      const choreData = choreSnap.data();
+      if (String(choreData.ownerUserId) !== uid) {
+        throw new Error("You can only complete your own chores");
+      }
+      if (choreData.status !== "open") {
+        throw new Error("This chore is already completed");
+      }
+      const expiresAt = (choreData.expiresAt as Timestamp).toDate();
+      if (expiresAt <= new Date()) {
+        throw new Error("This chore already expired");
+      }
+
+      tx.update(choreRef, {
+        status: "completed",
+        completedAt: serverTimestamp(),
+      });
+      tx.update(userRef, { balance: increment(CHORE_COMPLETION_REWARD) });
+      tx.set(doc(collection(db, "walletLedger")), {
+        userId: uid,
+        delta: CHORE_COMPLETION_REWARD,
+        reason: "chore_complete_reward",
+        choreId,
+        createdAt: serverTimestamp(),
+      });
+    });
+    debugLog("chore", "completeTodo transaction ok", { uid, choreId });
+    await settleChoreById(choreId);
+    debugLog("chore", "completeTodo done (settlement attempted)", {
+      uid,
+      choreId,
+    });
+  } catch (error) {
+    if (isPermissionDeniedError(error)) {
+      debugLog("settle", "settlement blocked by rules after completeTodo", {
+        uid,
+        choreId,
+      });
+      return;
+    }
+    debugLog("chore", "completeTodo failed", {
+      uid,
+      choreId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
-  await updateDoc(ref, {
-    status: "completed",
-    completedAt: serverTimestamp(),
-  });
 }
 
 export function subscribePopularChores(
@@ -184,11 +261,16 @@ export function subscribePopularChores(
     limit(10),
   );
   return onSnapshot(q, (snap) => {
-    onData(
-      snap.docs.map((entry) =>
-        choreFromSnap(entry.id, entry.data() as Record<string, unknown>),
-      ),
+    const chores = snap.docs.map((entry) =>
+      choreFromSnap(entry.id, entry.data() as Record<string, unknown>),
     );
+    debugLog("chore", "subscribePopularChores snapshot", {
+      count: chores.length,
+      openCount: chores.filter((chore) => chore.status === "open").length,
+      settledCount: chores.filter((chore) => Boolean(chore.settledAt)).length,
+      chores: debugChoreSummary(chores),
+    });
+    onData(chores);
   });
 }
 
@@ -203,17 +285,51 @@ export function subscribeMyBets(
     limit(30),
   );
   return onSnapshot(q, (snap) => {
-    onData(
-      snap.docs.map((entry) =>
-        betFromSnap(entry.id, entry.data() as Record<string, unknown>),
-      ),
+    const bets = snap.docs.map((entry) =>
+      betFromSnap(entry.id, entry.data() as Record<string, unknown>),
     );
+    void (async () => {
+      const uniqueChoreIds = Array.from(new Set(bets.map((bet) => bet.choreId)));
+      const choreTitleEntries = await Promise.all(
+        uniqueChoreIds.map(async (choreId) => {
+          const choreSnap = await getDoc(doc(db, "chores", choreId));
+          const title = choreSnap.exists() ? String(choreSnap.data().title ?? "") : "";
+          return [choreId, title] as const;
+        }),
+      );
+      const choreTitleById = new Map(choreTitleEntries);
+      const enrichedBets = bets.map((bet) => ({
+        ...bet,
+        choreTitle: choreTitleById.get(bet.choreId) || undefined,
+      }));
+      debugLog("bet", "subscribeMyBets snapshot", {
+        uid,
+        count: enrichedBets.length,
+        openCount: enrichedBets.filter((b) => b.status === "open").length,
+        bets: debugBetSummary(enrichedBets),
+      });
+      onData(enrichedBets);
+    })().catch((error) => {
+      debugLog("bet", "subscribeMyBets enrich failed", {
+        uid,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      onData(bets);
+    });
   });
 }
 
 export async function getRandomCandidate(uid: string): Promise<Chore | null> {
   const now = new Date();
   const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const existingBetsQ = query(
+    collection(db, "bets"),
+    where("bettorUserId", "==", uid),
+  );
+  const existingBetsSnap = await getDocs(existingBetsQ);
+  const excludedChoreIds = new Set(
+    existingBetsSnap.docs.map((entry) => String(entry.data().choreId)),
+  );
   const q = query(
     collection(db, "chores"),
     where("status", "==", "open"),
@@ -226,11 +342,26 @@ export async function getRandomCandidate(uid: string): Promise<Chore | null> {
     .map((entry) =>
       choreFromSnap(entry.id, entry.data() as Record<string, unknown>),
     )
-    .filter((item) => item.ownerUserId !== uid);
+    .filter(
+      (item) => item.ownerUserId !== uid && !excludedChoreIds.has(item.id),
+    );
+  debugLog("bet", "getRandomCandidate evaluated", {
+    uid,
+    fetched: snap.docs.length,
+    excludedByExistingBet: excludedChoreIds.size,
+    eligibleCount: filtered.length,
+    eligible: debugChoreSummary(filtered),
+  });
   if (filtered.length === 0) {
+    debugLog("bet", "getRandomCandidate none", { uid });
     return null;
   }
   const index = Math.floor(Math.random() * filtered.length);
+  debugLog("bet", "getRandomCandidate selected", {
+    uid,
+    index,
+    chore: debugChoreSummary([filtered[index]])[0],
+  });
   return filtered[index];
 }
 
@@ -269,8 +400,20 @@ export async function placeBet(
   side: BetSide,
   stake: number,
 ): Promise<void> {
+  const existingBetQ = query(
+    collection(db, "bets"),
+    where("bettorUserId", "==", uid),
+    where("choreId", "==", chore.id),
+    limit(1),
+  );
+  const existingBetSnap = await getDocs(existingBetQ);
+  if (!existingBetSnap.empty) {
+    throw new Error("You already placed a bet on this chore");
+  }
+
   const userRef = doc(db, "users", uid);
   const choreRef = doc(db, "chores", chore.id);
+  const betRef = doc(db, "bets", `${uid}_${chore.id}`);
 
   await runTransaction(db, async (tx) => {
     const [userSnap, choreSnap] = await Promise.all([
@@ -295,6 +438,10 @@ export async function placeBet(
     ) {
       throw new Error("This bet is not eligible");
     }
+    const existingBet = await tx.get(betRef);
+    if (existingBet.exists()) {
+      throw new Error("You already placed a bet on this chore");
+    }
 
     tx.update(userRef, { balance: increment(-stake) });
     tx.update(choreRef, {
@@ -303,7 +450,7 @@ export async function placeBet(
       totalOnFail: side === "fail" ? increment(stake) : increment(0),
     });
 
-    tx.set(doc(collection(db, "bets")), {
+    tx.set(betRef, {
       bettorUserId: uid,
       choreId: chore.id,
       side,
@@ -317,84 +464,348 @@ export async function placeBet(
       userId: uid,
       delta: -stake,
       reason: "bet_stake",
+      choreId: chore.id,
       createdAt: serverTimestamp(),
     });
+  });
+  debugLog("bet", "placeBet ok", {
+    uid,
+    betId: `${uid}_${chore.id}`,
+    choreId: chore.id,
+    side,
+    stake,
   });
 }
 
 export async function settleExpiredChores(): Promise<void> {
   const now = Timestamp.fromDate(new Date());
-  const choresQ = query(
+  debugLog("settle", "settleExpiredChores start", {
+    now: now.toDate().toISOString(),
+  });
+  const expiredOpenQ = query(
     collection(db, "chores"),
     where("settledAt", "==", null),
+    where("status", "==", "open"),
     where("expiresAt", "<=", now),
     limit(20),
   );
-  const chores = await getDocs(choresQ);
+  const completedUnsettledQ = query(
+    collection(db, "chores"),
+    where("settledAt", "==", null),
+    where("status", "==", "completed"),
+    limit(20),
+  );
+  const [expiredOpenChores, completedUnsettledChores] = await Promise.all([
+    getDocs(expiredOpenQ),
+    getDocs(completedUnsettledQ),
+  ]);
+  const choreIds = new Set<string>();
+  for (const choreDoc of expiredOpenChores.docs) {
+    choreIds.add(choreDoc.id);
+  }
+  for (const choreDoc of completedUnsettledChores.docs) {
+    choreIds.add(choreDoc.id);
+  }
 
-  for (const choreDoc of chores.docs) {
-    await runTransaction(db, async (tx) => {
-      const freshChore = await tx.get(choreDoc.ref);
-      if (!freshChore.exists()) return;
-      const choreData = freshChore.data();
-      if (choreData.settledAt) return;
+  if (choreIds.size > 0) {
+    debugLog("settle", "settleExpiredChores", {
+      choreIds: [...choreIds],
+      expiredOpen: expiredOpenChores.docs.length,
+      completedUnsettled: completedUnsettledChores.docs.length,
+    });
+  }
 
-      const winsOnComplete =
-        choreData.status === "completed" &&
-        choreData.completedAt &&
-        (choreData.completedAt as Timestamp).toMillis() <=
-          (choreData.expiresAt as Timestamp).toMillis();
-      const winningSide: BetSide = winsOnComplete ? "complete" : "fail";
+  for (const choreId of choreIds) {
+    await settleChoreById(choreId, now);
+  }
+  debugLog("settle", "settleExpiredChores done", {
+    attemptedCount: choreIds.size,
+  });
+}
 
-      const betsQ = query(
-        collection(db, "bets"),
-        where("choreId", "==", choreDoc.id),
-        where("status", "==", "open"),
-      );
-      const betsSnap = await getDocs(betsQ);
-      const bets: BetSettlementDoc[] = betsSnap.docs.map((entry) => {
-        const data = entry.data();
+export async function settleOpenBetsForUser(uid: string): Promise<void> {
+  const openBetsQ = query(
+    collection(db, "bets"),
+    where("bettorUserId", "==", uid),
+    where("status", "==", "open"),
+    limit(100),
+  );
+  const openBetsSnap = await getDocs(openBetsQ);
+  if (openBetsSnap.empty) {
+    debugLog("settle", "settleOpenBetsForUser no open bets", { uid });
+    return;
+  }
+
+  const now = Timestamp.fromDate(new Date());
+  const choreIds = new Set<string>();
+  for (const betDoc of openBetsSnap.docs) {
+    const data = betDoc.data();
+    choreIds.add(String(data.choreId));
+  }
+  debugLog("settle", "settleOpenBetsForUser", {
+    uid,
+    openBetCount: openBetsSnap.docs.length,
+    choreIds: [...choreIds],
+    openBets: openBetsSnap.docs.map((d) => ({
+      betId: d.id,
+      choreId: d.data().choreId,
+      side: d.data().side,
+      stake: d.data().stake,
+    })),
+  });
+  for (const choreId of choreIds) {
+    await settleChoreById(choreId, now);
+  }
+  debugLog("settle", "settleOpenBetsForUser done", {
+    uid,
+    attemptedCount: choreIds.size,
+  });
+}
+
+async function settleChoreById(
+  choreId: string,
+  now: Timestamp = Timestamp.fromDate(new Date()),
+): Promise<void> {
+  const choreRef = doc(db, "chores", choreId);
+  const openBetsQ = query(
+    collection(db, "bets"),
+    where("choreId", "==", choreId),
+    where("status", "==", "open"),
+  );
+  const openBetsSnap = await getDocs(openBetsQ);
+  const openBetRefs = openBetsSnap.docs.map((entry) => entry.ref);
+  debugLog("settle", "settleChoreById start", {
+    choreId,
+    openBetCount: openBetRefs.length,
+    openBetIds: openBetsSnap.docs.map((d) => d.id),
+    now: now.toDate().toISOString(),
+  });
+
+  let skipReason: string | null = null;
+  let settlementResult: Record<string, unknown> | null = null;
+
+  await runTransaction(db, async (tx) => {
+    const freshChore = await tx.get(choreRef);
+    if (!freshChore.exists()) {
+      skipReason = "chore_not_found";
+      return;
+    }
+    const choreData = freshChore.data();
+    if (choreData.settledAt) {
+      skipReason = "already_settled";
+      return;
+    }
+    debugLog("settle", "settleChoreById chore snapshot", {
+      choreId,
+      ownerUserId: String(choreData.ownerUserId),
+      status: String(choreData.status),
+      settledAt: toIso(choreData.settledAt as Timestamp | null),
+      expiresAt: (choreData.expiresAt as Timestamp).toDate().toISOString(),
+      completedAt: toIso(choreData.completedAt as Timestamp | null),
+      totalPool: Number(choreData.totalPool ?? 0),
+      totalOnComplete: Number(choreData.totalOnComplete ?? 0),
+      totalOnFail: Number(choreData.totalOnFail ?? 0),
+      now: now.toDate().toISOString(),
+    });
+    const isExpiredOpenChore =
+      choreData.status === "open" &&
+      (choreData.expiresAt as Timestamp).toMillis() <= now.toMillis();
+    if (choreData.status === "open" && !isExpiredOpenChore) {
+      skipReason = "still_open_not_expired";
+      debugLog("settle", "settleChoreById skipped open chore before expiry", {
+        choreId,
+        status: String(choreData.status),
+        expiresAt: (choreData.expiresAt as Timestamp).toDate().toISOString(),
+        now: now.toDate().toISOString(),
+      });
+      return;
+    }
+    const effectiveStatus = isExpiredOpenChore ? "completed" : choreData.status;
+    const effectiveCompletedAt = isExpiredOpenChore
+      ? now
+      : (choreData.completedAt as Timestamp | null);
+    const expiresAtMs = (choreData.expiresAt as Timestamp).toMillis();
+
+    // A chore marked completed before expiry should settle as a "complete" win.
+    // `completedAt` can be briefly absent right after a serverTimestamp write.
+    const winsOnComplete =
+      effectiveStatus === "completed" &&
+      !isExpiredOpenChore &&
+      (!effectiveCompletedAt ||
+        (effectiveCompletedAt as Timestamp).toMillis() <= expiresAtMs);
+    const winningSide: BetSide = winsOnComplete ? "complete" : "fail";
+    debugLog("settle", "settleChoreById computed decision", {
+      choreId,
+      isExpiredOpenChore,
+      effectiveStatus,
+      effectiveCompletedAt: effectiveCompletedAt
+        ? (effectiveCompletedAt as Timestamp).toDate().toISOString()
+        : null,
+      winsOnComplete,
+      winningSide,
+      expiresAtMs,
+      nowMs: now.toMillis(),
+    });
+
+    const bets: BetSettlementDoc[] = [];
+    for (const betRef of openBetRefs) {
+      const betSnap = await tx.get(betRef);
+      if (!betSnap.exists()) continue;
+      const data = betSnap.data();
+      if (String(data.status) !== "open") continue;
+      bets.push({
+        ref: betRef,
+        bettorUserId: String(data.bettorUserId),
+        side: data.side as BetSide,
+        stake: Number(data.stake),
+      });
+    }
+    const totalWinningStake = bets
+      .filter((bet) => bet.side === winningSide)
+      .reduce((sum, bet) => sum + Number(bet.stake), 0);
+    const totalLosingStake = bets
+      .filter((bet) => bet.side !== winningSide)
+      .reduce((sum, bet) => sum + Number(bet.stake), 0);
+    const totalStake = bets.reduce((sum, bet) => sum + Number(bet.stake), 0);
+    const totalPool =
+      Number(choreData.totalPool ?? 0) > 0
+        ? Number(choreData.totalPool)
+        : totalStake;
+    const completedOwnerBonus =
+      winsOnComplete && bets.length > 0 ? Math.floor(totalPool * 0.1) : 0;
+    // Keep bettor behavior symmetric: whichever side wins gets the same 110% pool budget,
+    // then winners split proportionally by their stake on the winning side.
+    const bettorsPayoutBudget = bets.length > 0 ? Math.floor(totalPool * 1.1) : 0;
+    debugLog("settle", "settleChoreById stake summary", {
+      choreId,
+      winningSide,
+      totalWinningStake,
+      totalLosingStake,
+      totalStake,
+      totalPool,
+      openBetsCount: bets.length,
+      bettorsPayoutBudget,
+      completedOwnerBonus,
+      betSides: bets.map((bet) => ({
+        betId: bet.ref.id,
+        side: bet.side,
+        stake: bet.stake,
+      })),
+    });
+    const winnerPayouts = new Map<string, number>();
+
+    if (
+      bets.length > 0 &&
+      totalWinningStake > 0 &&
+      bettorsPayoutBudget > 0
+    ) {
+      const winningBets = bets.filter((bet) => bet.side === winningSide);
+      let assigned = 0;
+      const payoutByWeight = winningBets.map((bet) => {
+        const weightedPayout = Math.floor(
+          (Number(bet.stake) / totalWinningStake) * bettorsPayoutBudget,
+        );
+        assigned += weightedPayout;
         return {
-          ref: entry.ref,
-          bettorUserId: String(data.bettorUserId),
-          side: data.side as BetSide,
-          stake: Number(data.stake),
+          betId: bet.ref.id,
+          weightedPayout,
+          stake: Number(bet.stake),
         };
       });
-      const totalWinningStake = bets
-        .filter((bet) => bet.side === winningSide)
-        .reduce((sum, bet) => sum + Number(bet.stake), 0);
-      const totalLosingStake = bets
-        .filter((bet) => bet.side !== winningSide)
-        .reduce((sum, bet) => sum + Number(bet.stake), 0);
-
-      for (const bet of bets) {
-        const won = bet.side === winningSide;
-        const payout =
-          won && totalWinningStake > 0
-            ? Number(bet.stake) +
-              Math.floor(
-                (Number(bet.stake) / totalWinningStake) * totalLosingStake,
-              )
-            : 0;
-        tx.update(bet.ref, {
-          status: won ? "won" : "lost",
-          payout,
-          settledAt: serverTimestamp(),
-        });
-        if (won && payout > 0) {
-          const winnerRef = doc(db, "users", String(bet.bettorUserId));
-          tx.update(winnerRef, { balance: increment(payout) });
-          tx.set(doc(collection(db, "walletLedger")), {
-            userId: bet.bettorUserId,
-            delta: payout,
-            reason: "bet_payout",
-            createdAt: serverTimestamp(),
-          });
-        }
+      let remainder = bettorsPayoutBudget - assigned;
+      payoutByWeight.sort((a, b) => b.stake - a.stake);
+      for (let i = 0; i < payoutByWeight.length && remainder > 0; i += 1) {
+        payoutByWeight[i].weightedPayout += 1;
+        remainder -= 1;
       }
+      for (const payoutEntry of payoutByWeight) {
+        winnerPayouts.set(payoutEntry.betId, payoutEntry.weightedPayout);
+      }
+    }
 
-      tx.update(choreDoc.ref, { settledAt: serverTimestamp() });
+    for (const bet of bets) {
+      const won = bet.side === winningSide;
+      const payout = won ? winnerPayouts.get(bet.ref.id) ?? 0 : 0;
+      tx.update(bet.ref, {
+        status: won ? "won" : "lost",
+        payout,
+        settledAt: serverTimestamp(),
+      });
+      if (won && payout > 0) {
+        const winnerRef = doc(db, "users", String(bet.bettorUserId));
+        tx.update(winnerRef, { balance: increment(payout) });
+        tx.set(doc(collection(db, "walletLedger")), {
+          userId: bet.bettorUserId,
+          delta: payout,
+          reason: winsOnComplete ? "bet_completion_pool_payout" : "bet_payout",
+          choreId,
+          createdAt: serverTimestamp(),
+        });
+      }
+    }
+
+    if (completedOwnerBonus > 0) {
+      tx.update(doc(db, "users", String(choreData.ownerUserId)), {
+        balance: increment(completedOwnerBonus),
+      });
+      tx.set(doc(collection(db, "walletLedger")), {
+        userId: String(choreData.ownerUserId),
+        delta: completedOwnerBonus,
+        reason: "chore_completion_pool_bonus",
+        choreId,
+        createdAt: serverTimestamp(),
+      });
+    }
+
+    tx.update(choreRef, {
+      ...(isExpiredOpenChore
+        ? {
+            status: "completed",
+            completedAt: serverTimestamp(),
+          }
+        : {}),
+      settledAt: serverTimestamp(),
+    });
+
+    settlementResult = {
+      choreId,
+      choreStatus: choreData.status,
+      isExpiredOpenChore,
+      effectiveStatus,
+      expiresAt: (choreData.expiresAt as Timestamp).toDate().toISOString(),
+      effectiveCompletedAt: effectiveCompletedAt
+        ? (effectiveCompletedAt as Timestamp).toDate().toISOString()
+        : null,
+      winsOnComplete,
+      winningSide,
+      totalPool,
+      totalStake,
+      openBetsSettled: bets.length,
+      betOutcomes: bets.map((bet) => ({
+        betId: bet.ref.id,
+        bettorUserId: bet.bettorUserId,
+        side: bet.side,
+        stake: bet.stake,
+        won: bet.side === winningSide,
+        payout: bet.side === winningSide ? winnerPayouts.get(bet.ref.id) ?? 0 : 0,
+        finalStatus: winsOnComplete
+          ? "won"
+          : bet.side === winningSide
+            ? "won"
+            : "lost",
+      })),
+      completedOwnerBonus,
+    };
+  });
+
+  if (skipReason) {
+    debugLog("settle", "settleChoreById skipped", { choreId, skipReason });
+  } else if (settlementResult) {
+    debugLog("settle", "settleChoreById settled", settlementResult);
+  } else {
+    debugLog("settle", "settleChoreById no-op", {
+      choreId,
+      openBetCount: openBetRefs.length,
     });
   }
 }

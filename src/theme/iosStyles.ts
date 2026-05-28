@@ -1,6 +1,18 @@
 import { alpha } from '@mui/material/styles'
 import type { SxProps, Theme } from '@mui/material/styles'
 
+export const paperThemeColors = {
+  ink: '#1C1B1B',
+  cream: '#FCF9F8',
+  paper: '#F6F3F2',
+  paperElevated: '#FFFFFF',
+  red: '#BC000A',
+  redBright: '#E2241F',
+  yellow: '#FECB00',
+  blue: '#0079C1',
+  brown: '#926F6A',
+} as const
+
 export const sectionStackSx: SxProps<Theme> = {
   position: 'relative',
   zIndex: 1,
@@ -8,51 +20,70 @@ export const sectionStackSx: SxProps<Theme> = {
 
 /** iOS large navigation title (34pt semibold). */
 export const iosLargeTitleSx: SxProps<Theme> = {
-  fontWeight: 700,
-  fontSize: { xs: '2rem', sm: '2.125rem' },
-  lineHeight: 1.15,
-  letterSpacing: '0.01em',
+  fontWeight: 800,
+  fontSize: { xs: '2rem', sm: '2.3rem' },
+  lineHeight: 1.05,
+  letterSpacing: '-0.01em',
+  textTransform: 'uppercase',
+  textShadow: `2px 2px 0 ${alpha(paperThemeColors.ink, 0.22)}`,
   mb: 0.25,
 }
 
 /** Footnote-style section header above grouped lists. */
 export const iosSectionHeaderSx: SxProps<Theme> = {
-  color: 'text.secondary',
-  fontSize: '0.8125rem',
-  fontWeight: 400,
+  color: 'text.primary',
+  fontSize: '0.74rem',
+  fontWeight: 700,
   textTransform: 'uppercase',
-  letterSpacing: '0.02em',
-  px: 2,
-  pt: 2,
-  pb: 0.75,
+  letterSpacing: '0.06em',
+  px: 0.5,
+  pt: 1.25,
+  pb: 1,
+  transform: 'rotate(-1deg)',
 }
 
 /** Grouped inset card (Settings-style). */
 export const iosGroupedCardSx: SxProps<Theme> = {
   bgcolor: 'background.paper',
-  borderRadius: '12px',
+  borderRadius: '16px',
   overflow: 'hidden',
+  border: `3px solid ${paperThemeColors.ink}`,
+  boxShadow: `4px 4px 0 ${paperThemeColors.ink}`,
+  backgroundImage:
+    'radial-gradient(rgba(28,27,27,0.06) 0.8px, transparent 0.8px), linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 30%)',
+  backgroundSize: '8px 8px, auto',
 }
 
 /** Cell inside a grouped card. */
 export const iosListCellSx: SxProps<Theme> = {
-  py: 1.75,
+  py: 1.5,
   px: 2,
   alignItems: 'center',
   minHeight: 44,
   '&:not(:last-child)': {
-    borderBottom: '0.5px solid',
-    borderColor: 'divider',
+    borderBottom: `2px solid ${alpha(paperThemeColors.ink, 0.2)}`,
   },
 }
 
-/** Frosted bar (tab bar / nav bar). */
+/** Frosted bar (top nav). */
 export const iosFrostedBarSx: SxProps<Theme> = {
-  backdropFilter: 'saturate(180%) blur(20px)',
-  WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-  bgcolor: alpha('#1C1C1E', 0.72),
-  borderColor: alpha('#545456', 0.36),
+  bgcolor: alpha(paperThemeColors.cream, 0.95),
+  borderBottom: `3px solid ${paperThemeColors.ink}`,
+  boxShadow: `4px 4px 0 ${paperThemeColors.ink}`,
 }
+
+/** Bottom tab bar — solid fill (no backdrop blur) to avoid a light fringe at the top edge. */
+export const iosTabBarSx: SxProps<Theme> = {
+  bgcolor: paperThemeColors.cream,
+  borderColor: paperThemeColors.ink,
+  boxShadow: `4px 4px 0 ${paperThemeColors.ink}`,
+  backgroundImage:
+    'radial-gradient(rgba(28,27,27,0.05) 0.8px, transparent 0.8px), linear-gradient(180deg, rgba(255,255,255,0.4), rgba(255,255,255,0))',
+  backgroundSize: '8px 8px, auto',
+}
+
+/** Tab bar content height (excludes safe-area inset). */
+export const iosTabBarHeight = 56
 
 /** Home screen app icon tile. */
 export const iosAppIconSx = (accent: string): SxProps<Theme> => ({
@@ -74,7 +105,7 @@ export const iosAppIconSx = (accent: string): SxProps<Theme> => ({
 })
 
 /** Fixed bottom offset above tab bar. */
-export const iosBottomInset = 'calc(49px + env(safe-area-inset-bottom, 0px))'
+export const iosBottomInset = `calc(${iosTabBarHeight}px + env(safe-area-inset-bottom, 0px))`
 
 /** Top safe area padding for status bar. */
 export const iosTopInset = 'env(safe-area-inset-top, 0px)'

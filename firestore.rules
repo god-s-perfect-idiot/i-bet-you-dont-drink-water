@@ -12,7 +12,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if signedIn();
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+      allow update: if signedIn() && request.resource.data.diff(resource.data).changedKeys().hasOnly([
         'balance',
         'handle'
       ]);
@@ -39,7 +39,7 @@ service cloud.firestore {
 
     match /walletLedger/{entryId} {
       allow read: if signedIn() && resource.data.userId == request.auth.uid;
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow create: if signedIn();
       allow update: if false;
     }
 

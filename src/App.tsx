@@ -25,6 +25,7 @@ import {
   placeBet,
   redeemReward,
   settleExpiredChores,
+  settleOpenBetsForUser,
   subscribeLeaderboard,
   subscribeMyBets,
   subscribePopularChores,
@@ -50,6 +51,7 @@ import { MyBetsPanel } from './components/bets/MyBetsPanel'
 import { LeaderboardPanel } from './components/leaderboard/LeaderboardPanel'
 import { CreateRewardPanel } from './components/rewards/CreateRewardPanel'
 import { RewardsPanel } from './components/rewards/RewardsPanel'
+import { debugLog } from './debugLog'
 import { iosBottomInset, sectionStackSx } from './theme/iosStyles'
 
 const stakeOptions = [50, 100, 250, 500]
@@ -72,6 +74,7 @@ function App() {
   const [candidate, setCandidate] = useState<Chore | null>(null)
   const [isCreatingChore, setIsCreatingChore] = useState(false)
   const [todoTitle, setTodoTitle] = useState('')
+  const [todoDueInDays, setTodoDueInDays] = useState('1')
   const [stake, setStake] = useState(100)
   const [betsTab, setBetsTab] = useState(0)
   const [userRewards, setUserRewards] = useState<UserReward[]>([])
@@ -81,6 +84,27 @@ function App() {
   const [rewardCost, setRewardCost] = useState('500')
   const [message, setMessage] = useState<string | null>(null)
   const [accountName, setAccountName] = useState('')
+  const [pendingCompletedChoreIds, setPendingCompletedChoreIds] = useState<Set<string>>(new Set())
+  const visibleTodos = useMemo<Chore[]>(
+    () =>
+      todos.map((todo) =>
+        pendingCompletedChoreIds.has(todo.id) && todo.status === 'open'
+          ? {
+              ...todo,
+              status: 'completed' as const,
+              completedAt: todo.completedAt ?? new Date().toISOString(),
+            }
+          : todo,
+      ),
+    [todos, pendingCompletedChoreIds],
+  )
+  const activeChoresCount = useMemo(() => visibleTodos.filter((todo) => todo.status === 'open').length, [visibleTodos])
+  const myBetChoreIds = useMemo(() => new Set(myBets.map((bet) => bet.choreId)), [myBets])
+
+  useEffect(() => {
+    debugLog('app', 'build marker 2026-05-28-fix-open-chore-settlement-v2')
+  }, [])
+
   useEffect(
     () =>
       onAuthStateChanged(auth, (firebaseUser) => {
@@ -94,7 +118,54 @@ function App() {
     if (!userId) {
       return undefined
     }
-    void settleExpiredChores()
+    debugLog('settle', 'auth bootstrap settle start', { userId })
+    const initialExpiredSettle = settleExpiredChores()
+    void initialExpiredSettle
+      .then(() => {
+        debugLog('settle', 'initial settleExpiredChores finished', { userId })
+      })
+      .catch((error) => {
+        debugLog('settle', 'initial settleExpiredChores failed', {
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      })
+    const initialOpenBetsSettle = settleOpenBetsForUser(userId)
+    void initialOpenBetsSettle
+      .then(() => {
+        debugLog('settle', 'initial settleOpenBetsForUser finished', { userId })
+      })
+      .catch((error) => {
+        debugLog('settle', 'initial settleOpenBetsForUser failed', {
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      })
+    const settleInterval = setInterval(() => {
+      debugLog('settle', 'interval settle tick start', { userId })
+      const intervalExpiredSettle = settleExpiredChores()
+      void intervalExpiredSettle
+        .then(() => {
+          debugLog('settle', 'interval settleExpiredChores finished', { userId })
+        })
+        .catch((error) => {
+          debugLog('settle', 'interval settleExpiredChores failed', {
+            userId,
+            error: error instanceof Error ? error.message : String(error),
+          })
+        })
+      const intervalOpenBetsSettle = settleOpenBetsForUser(userId)
+      void intervalOpenBetsSettle
+        .then(() => {
+          debugLog('settle', 'interval settleOpenBetsForUser finished', { userId })
+        })
+        .catch((error) => {
+          debugLog('settle', 'interval settleOpenBetsForUser failed', {
+            userId,
+            error: error instanceof Error ? error.message : String(error),
+          })
+        })
+    }, 60_000)
     const unsubscribers = [
       subscribeProfile(userId, setProfile),
       subscribeTodos(userId, setTodos),
@@ -106,6 +177,8 @@ function App() {
     ]
     void loadCandidate(userId)
     return () => {
+      debugLog('settle', 'auth bootstrap cleanup', { userId })
+      clearInterval(settleInterval)
       unsubscribers.forEach((cancel) => cancel())
     }
   }, [userId])
@@ -116,11 +189,41 @@ function App() {
     })
   }, [profile?.handle])
 
+  useEffect(() => {
+    if (pendingCompletedChoreIds.size === 0) {
+      return
+    }
+    setPendingCompletedChoreIds((previous) => {
+      const remaining = new Set(previous)
+      for (const chore of todos) {
+        if (chore.status === 'completed') {
+          remaining.delete(chore.id)
+        }
+      }
+      return remaining.size === previous.size ? previous : remaining
+    })
+  }, [todos, pendingCompletedChoreIds.size])
+
+  useEffect(() => {
+    if (!userId || activeNav !== 1 || betsTab !== 0) {
+      return
+    }
+    void loadCandidate(userId)
+  }, [activeNav, betsTab, userId])
+
   const userRank = useMemo(() => leaderboard.findIndex((row) => row.id === userId) + 1, [leaderboard, userId])
 
   async function loadCandidate(uid: string): Promise<void> {
+    debugLog('app', 'loadCandidate start', { uid })
     const next = await getRandomCandidate(uid)
     setCandidate(next)
+    debugLog('app', 'loadCandidate done', {
+      uid,
+      candidateId: next?.id ?? null,
+      candidateStatus: next?.status ?? null,
+      candidateExpiresAt: next?.expiresAt ?? null,
+      candidateSettledAt: next?.settledAt ?? null,
+    })
   }
 
   async function handleAuthSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -141,18 +244,45 @@ function App() {
   async function onCreateTodo(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
     if (!userId) return
-    await createTodo(userId, todoTitle, dayjs().add(2, 'hour').toISOString())
+    const dueInDays = Number.parseInt(todoDueInDays, 10)
+    if (!Number.isFinite(dueInDays) || dueInDays < 1) {
+      setMessage('Please enter a valid due time in days.')
+      return
+    }
+    await createTodo(userId, todoTitle, dayjs().add(dueInDays, 'day').toISOString())
     setTodoTitle('')
+    setTodoDueInDays('1')
     setIsCreatingChore(false)
   }
 
   async function onPlaceBet(side: BetSide, selected: Chore): Promise<void> {
     if (!userId) return
+    if (selected.ownerUserId === userId) {
+      setMessage('You cannot bet on your own chore.')
+      return
+    }
+    if (myBetChoreIds.has(selected.id)) {
+      setMessage('You already placed a bet on this chore.')
+      return
+    }
     try {
+      debugLog('app', 'onPlaceBet start', {
+        userId,
+        choreId: selected.id,
+        choreStatus: selected.status,
+        side,
+        stake,
+      })
       await placeBet(userId, selected, side, stake)
       await loadCandidate(userId)
       setMessage('Bet placed successfully.')
+      debugLog('app', 'onPlaceBet done', { userId, choreId: selected.id, side, stake })
     } catch (error) {
+      debugLog('app', 'onPlaceBet failed', {
+        userId,
+        choreId: selected.id,
+        error: error instanceof Error ? error.message : String(error),
+      })
       setMessage(error instanceof Error ? error.message : 'Could not place bet')
     }
   }
@@ -227,15 +357,15 @@ function App() {
   }
 
   return (
-    <Box sx={{ pb: `calc(${iosBottomInset} + 16px)`, minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ pb: `calc(${iosBottomInset} + 18px)`, minHeight: '100vh', bgcolor: 'background.default' }}>
       <TopBar profile={profile} />
 
-      <Container maxWidth="sm" disableGutters sx={{ px: 2, py: 1.5 }}>
+      <Container maxWidth="sm" disableGutters sx={{ px: 2.5, py: 1.75 }}>
         <IOSPageHeader
           title={pageTitles[activeNav]}
           subtitle={
             activeNav === 0
-              ? `${todos.length} active`
+              ? `${activeChoresCount} active`
               : activeNav === 1
                 ? 'Place your stakes'
                 : activeNav === 2
@@ -257,8 +387,9 @@ function App() {
                 sx={{
                   bgcolor: 'primary.main',
                   color: 'primary.contrastText',
-                  width: 36,
-                  height: 36,
+                  width: 42,
+                  height: 42,
+                  borderRadius: 999,
                   '&:hover': { bgcolor: 'primary.dark' },
                 }}
               >
@@ -270,7 +401,45 @@ function App() {
 
         {activeNav === 0 && (
           <Stack spacing={0} sx={sectionStackSx}>
-            <MyChoresPanel chores={todos} onComplete={(choreId) => void completeTodo(userId, choreId)} />
+            <MyChoresPanel
+              chores={visibleTodos}
+              onComplete={async (choreId) => {
+                const target = todos.find((todo) => todo.id === choreId)
+                debugLog('app', 'onComplete chore clicked', {
+                  userId,
+                  choreId,
+                  targetStatus: target?.status,
+                  expiresAt: target?.expiresAt,
+                  settledAt: target?.settledAt,
+                })
+                if (!target || target.status !== 'open') {
+                  debugLog('app', 'onComplete ignored (not open)', { choreId, targetStatus: target?.status })
+                  return
+                }
+                setPendingCompletedChoreIds((previous) => {
+                  const next = new Set(previous)
+                  next.add(choreId)
+                  return next
+                })
+                try {
+                  await completeTodo(userId, choreId)
+                  setMessage('Chore completed. +50 coins earned.')
+                  debugLog('app', 'onComplete success', { userId, choreId })
+                } catch (error) {
+                  setPendingCompletedChoreIds((previous) => {
+                    const next = new Set(previous)
+                    next.delete(choreId)
+                    return next
+                  })
+                  debugLog('app', 'onComplete failed', {
+                    userId,
+                    choreId,
+                    error: error instanceof Error ? error.message : String(error),
+                  })
+                  setMessage(error instanceof Error ? error.message : 'Could not complete chore')
+                }
+              }}
+            />
           </Stack>
         )}
 
@@ -293,7 +462,9 @@ function App() {
                 onSkip={async () => loadCandidate(userId)}
               />
             )}
-            {betsTab === 1 && <PopularChoresPanel chores={popularChores} onBet={onPlaceBet} />}
+            {betsTab === 1 && (
+              <PopularChoresPanel userId={userId} chores={popularChores} myBetChoreIds={myBetChoreIds} onBet={onPlaceBet} />
+            )}
             {betsTab === 2 && <MyBetsPanel bets={myBets} />}
           </Stack>
         )}
@@ -360,11 +531,14 @@ function App() {
       <CreateChorePanel
         open={isCreatingChore}
         title={todoTitle}
+        dueInDays={todoDueInDays}
         onClose={() => {
           setIsCreatingChore(false)
           setTodoTitle('')
+          setTodoDueInDays('1')
         }}
         onTitleChange={setTodoTitle}
+        onDueInDaysChange={setTodoDueInDays}
         onSubmit={onCreateTodo}
       />
 

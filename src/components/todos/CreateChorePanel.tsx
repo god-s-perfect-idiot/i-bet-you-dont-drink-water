@@ -22,12 +22,22 @@ const SlideUp = forwardRef(function SlideUp(
 interface CreateChorePanelProps {
   open: boolean
   title: string
+  dueInDays: string
   onClose: () => void
   onTitleChange: (value: string) => void
+  onDueInDaysChange: (value: string) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
 }
 
-export function CreateChorePanel({ open, title, onClose, onTitleChange, onSubmit }: CreateChorePanelProps) {
+export function CreateChorePanel({
+  open,
+  title,
+  dueInDays,
+  onClose,
+  onTitleChange,
+  onDueInDaysChange,
+  onSubmit,
+}: CreateChorePanelProps) {
   return (
     <Dialog
       open={open}
@@ -65,9 +75,19 @@ export function CreateChorePanel({ open, title, onClose, onTitleChange, onSubmit
             onChange={(event) => onTitleChange(event.target.value)}
             required
           />
+          <TextField
+            fullWidth
+            label="Due in how many days?"
+            type="number"
+            value={dueInDays}
+            onChange={(event) => onDueInDaysChange(event.target.value)}
+            required
+            slotProps={{ htmlInput: { min: 1, step: 1 } }}
+            sx={{ mt: 2 }}
+          />
         </DialogContent>
         <DialogActions sx={{ flexDirection: 'column', gap: 1, px: 2, pb: 3, pt: 0 }}>
-          <Button type="submit" variant="contained" fullWidth disabled={!title.trim()}>
+          <Button type="submit" variant="contained" fullWidth disabled={!title.trim() || !dueInDays.trim()}>
             Add Chore
           </Button>
           <Button onClick={onClose} color="inherit" fullWidth>

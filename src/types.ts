@@ -27,6 +27,7 @@ export interface Bet {
   id: string;
   bettorUserId: string;
   choreId: string;
+  choreTitle?: string;
   side: BetSide;
   stake: number;
   status: BetStatus;

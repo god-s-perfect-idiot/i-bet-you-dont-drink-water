@@ -2,7 +2,7 @@ import type { FormEvent } from 'react'
 import { Alert, Box, Button, Container, Snackbar, Stack, TextField, Typography } from '@mui/material'
 import { IOSSegmentedControl } from '../ios/IOSSegmentedControl'
 import { IOSGroupedSection } from '../ios/IOSGroupedSection'
-import { iosLargeTitleSx, iosTopInset } from '../../theme/iosStyles'
+import { iosLargeTitleSx, iosTopInset, paperThemeColors } from '../../theme/iosStyles'
 
 type AuthMode = 'signin' | 'signup'
 
@@ -49,8 +49,20 @@ export function AuthPanel(props: AuthPanelProps) {
         <Typography component="h1" sx={{ ...iosLargeTitleSx, mb: 1 }}>
           I Bet You Don&apos;t Drink Water
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Chores · stakes · leaderboard
+        <Typography
+          variant="subtitle2"
+          sx={{
+            mb: 3,
+            alignSelf: 'flex-start',
+            px: 1.25,
+            py: 0.5,
+            borderRadius: 999,
+            border: `2px solid ${paperThemeColors.ink}`,
+            bgcolor: '#FFFFFF',
+            boxShadow: `2px 2px 0 ${paperThemeColors.ink}`,
+          }}
+        >
+          Chore. Bet. Repeat.
         </Typography>
 
         <IOSSegmentedControl
@@ -93,7 +105,7 @@ export function AuthPanel(props: AuthPanelProps) {
             </Stack>
           </IOSGroupedSection>
 
-          <Button type="submit" variant="contained" color="primary" size="large" fullWidth>
+          <Button type="submit" variant="contained" color="primary" size="large" fullWidth sx={{ mt: 0.5 }}>
             {authMode === 'signup' ? 'Create Account · $10,000' : 'Sign In'}
           </Button>
         </Stack>

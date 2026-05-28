@@ -1,5 +1,5 @@
 import { Box, CircularProgress, Container, Typography } from '@mui/material'
-import { iosLargeTitleSx, iosTopInset } from '../../theme/iosStyles'
+import { iosLargeTitleSx, iosTopInset, paperThemeColors } from '../../theme/iosStyles'
 
 export function LoadingScreen() {
   return (
@@ -24,13 +24,22 @@ export function LoadingScreen() {
           px: 2,
         }}
       >
-        <Typography component="h1" sx={{ ...iosLargeTitleSx, mb: 1, alignSelf: 'flex-start' }}>
-          I Bet You Don&apos;t Drink Water
+        <Typography component="h1" sx={{ ...iosLargeTitleSx, textAlign: 'center' }}>
+          Chore. Bet. Repeat.
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 6, alignSelf: 'flex-start' }}>
-          Chores · stakes · leaderboard
-        </Typography>
-        <CircularProgress color="primary" size={32} aria-label="Loading" />
+        <Box
+          sx={{
+            mt: 3.5,
+            px: 1.5,
+            py: 1,
+            borderRadius: 999,
+            border: `3px solid ${paperThemeColors.ink}`,
+            boxShadow: `4px 4px 0 ${paperThemeColors.ink}`,
+            bgcolor: '#FFFFFF',
+          }}
+        >
+          <CircularProgress color="primary" size={28} aria-label="Loading" />
+        </Box>
       </Container>
     </Box>
   )
