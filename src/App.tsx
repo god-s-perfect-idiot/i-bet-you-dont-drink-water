@@ -76,6 +76,8 @@ function App() {
   const [todoTitle, setTodoTitle] = useState('')
   const [todoDueInDays, setTodoDueInDays] = useState('1')
   const [stake, setStake] = useState(100)
+  const [isPlacingBet, setIsPlacingBet] = useState(false)
+  const [pendingBetChoreId, setPendingBetChoreId] = useState<string | null>(null)
   const [betsTab, setBetsTab] = useState(0)
   const [userRewards, setUserRewards] = useState<UserReward[]>([])
   const [popularRewards, setPopularRewards] = useState<Reward[]>([])
@@ -244,28 +246,46 @@ function App() {
   async function onCreateTodo(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
     if (!userId) return
+    const trimmedTitle = todoTitle.trim()
     const dueInDays = Number.parseInt(todoDueInDays, 10)
     if (!Number.isFinite(dueInDays) || dueInDays < 1) {
       setMessage('Please enter a valid due time in days.')
       return
     }
-    await createTodo(userId, todoTitle, dayjs().add(dueInDays, 'day').toISOString())
+    if (trimmedTitle.length === 0) {
+      setMessage('Please enter a chore title.')
+      return
+    }
+    const previousTitle = todoTitle
+    const previousDueInDays = todoDueInDays
+    setIsCreatingChore(false)
     setTodoTitle('')
     setTodoDueInDays('1')
-    setIsCreatingChore(false)
+    try {
+      await createTodo(userId, trimmedTitle, dayjs().add(dueInDays, 'day').toISOString())
+      setMessage('Chore added.')
+    } catch (error) {
+      setIsCreatingChore(true)
+      setTodoTitle(previousTitle)
+      setTodoDueInDays(previousDueInDays)
+      setMessage(error instanceof Error ? error.message : 'Could not create chore')
+    }
   }
 
   async function onPlaceBet(side: BetSide, selected: Chore): Promise<void> {
     if (!userId) return
+    if (isPlacingBet) {
+      return
+    }
     if (selected.ownerUserId === userId) {
-      setMessage('You cannot bet on your own chore.')
       return
     }
     if (myBetChoreIds.has(selected.id)) {
-      setMessage('You already placed a bet on this chore.')
       return
     }
     try {
+      setIsPlacingBet(true)
+      setPendingBetChoreId(selected.id)
       debugLog('app', 'onPlaceBet start', {
         userId,
         choreId: selected.id,
@@ -274,8 +294,12 @@ function App() {
         stake,
       })
       await placeBet(userId, selected, side, stake)
-      await loadCandidate(userId)
-      setMessage('Bet placed successfully.')
+      void loadCandidate(userId).catch((error) => {
+        debugLog('app', 'loadCandidate after bet failed', {
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      })
       debugLog('app', 'onPlaceBet done', { userId, choreId: selected.id, side, stake })
     } catch (error) {
       debugLog('app', 'onPlaceBet failed', {
@@ -283,7 +307,9 @@ function App() {
         choreId: selected.id,
         error: error instanceof Error ? error.message : String(error),
       })
-      setMessage(error instanceof Error ? error.message : 'Could not place bet')
+    } finally {
+      setIsPlacingBet(false)
+      setPendingBetChoreId(null)
     }
   }
 
@@ -457,13 +483,21 @@ function App() {
                 candidate={candidate}
                 stakeOptions={stakeOptions}
                 stake={stake}
+                isPlacingBet={isPlacingBet}
                 onStakeChange={setStake}
                 onBet={onPlaceBet}
                 onSkip={async () => loadCandidate(userId)}
               />
             )}
             {betsTab === 1 && (
-              <PopularChoresPanel userId={userId} chores={popularChores} myBetChoreIds={myBetChoreIds} onBet={onPlaceBet} />
+              <PopularChoresPanel
+                userId={userId}
+                chores={popularChores}
+                myBetChoreIds={myBetChoreIds}
+                isPlacingBet={isPlacingBet}
+                pendingBetChoreId={pendingBetChoreId}
+                onBet={onPlaceBet}
+              />
             )}
             {betsTab === 2 && <MyBetsPanel bets={myBets} />}
           </Stack>

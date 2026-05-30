@@ -255,8 +255,11 @@ export async function completeTodo(
 export function subscribePopularChores(
   onData: (chores: Chore[]) => void,
 ): () => void {
+  const now = Timestamp.fromDate(new Date());
   const q = query(
     collection(db, "chores"),
+    where("status", "==", "open"),
+    where("expiresAt", ">", now),
     orderBy("totalPool", "desc"),
     limit(10),
   );

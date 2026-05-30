@@ -8,10 +8,19 @@ interface PopularChoresPanelProps {
   userId: string
   chores: Chore[]
   myBetChoreIds: Set<string>
+  isPlacingBet: boolean
+  pendingBetChoreId: string | null
   onBet: (side: BetSide, chore: Chore) => Promise<void>
 }
 
-export function PopularChoresPanel({ userId, chores, myBetChoreIds, onBet }: PopularChoresPanelProps) {
+export function PopularChoresPanel({
+  userId,
+  chores,
+  myBetChoreIds,
+  isPlacingBet,
+  pendingBetChoreId,
+  onBet,
+}: PopularChoresPanelProps) {
   const visibleChores = chores.filter(
     (item) => item.ownerUserId !== userId && item.status === 'open' && dayjs(item.expiresAt).isAfter(dayjs()),
   )
@@ -26,6 +35,7 @@ export function PopularChoresPanel({ userId, chores, myBetChoreIds, onBet }: Pop
         <Stack spacing={0}>
           {visibleChores.map((item) => {
             const hasBet = myBetChoreIds.has(item.id)
+            const isPendingThisChore = pendingBetChoreId === item.id
             return (
               <Box key={item.id} sx={{ ...iosListCellSx, display: 'block' }}>
               <Typography variant="body1" sx={{ fontWeight: 500, mb: 0.25 }}>
@@ -40,11 +50,23 @@ export function PopularChoresPanel({ userId, chores, myBetChoreIds, onBet }: Pop
                     </Typography>
                   ) : (
                     <Stack direction="row" spacing={1}>
-                      <Button size="small" variant="contained" color="success" onClick={() => onBet('complete', item)}>
-                        Complete
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="success"
+                        disabled={isPlacingBet}
+                        onClick={() => onBet('complete', item)}
+                      >
+                        {isPendingThisChore ? 'Placing...' : 'Complete'}
                       </Button>
-                      <Button size="small" variant="contained" color="error" onClick={() => onBet('fail', item)}>
-                        Fail
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="error"
+                        disabled={isPlacingBet}
+                        onClick={() => onBet('fail', item)}
+                      >
+                        {isPendingThisChore ? 'Placing...' : 'Fail'}
                       </Button>
                     </Stack>
                   )}

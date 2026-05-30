@@ -7,12 +7,21 @@ interface RandomBetPanelProps {
   candidate: Chore | null
   stakeOptions: number[]
   stake: number
+  isPlacingBet: boolean
   onStakeChange: (value: number) => void
   onBet: (side: BetSide, chore: Chore) => Promise<void>
   onSkip: () => Promise<void>
 }
 
-export function RandomBetPanel({ candidate, stakeOptions, stake, onStakeChange, onBet, onSkip }: RandomBetPanelProps) {
+export function RandomBetPanel({
+  candidate,
+  stakeOptions,
+  stake,
+  isPlacingBet,
+  onStakeChange,
+  onBet,
+  onSkip,
+}: RandomBetPanelProps) {
   return (
     <PanelFrame title="Quick Bet" badge="24h window">
       <Box sx={{ px: 2, pt: 2, pb: 1 }}>
@@ -26,6 +35,7 @@ export function RandomBetPanel({ candidate, stakeOptions, stake, onStakeChange, 
               label={`$${value}`}
               color={stake === value ? 'primary' : 'default'}
               variant={stake === value ? 'filled' : 'outlined'}
+              disabled={isPlacingBet}
               onClick={() => onStakeChange(value)}
               sx={
                 stake === value
@@ -46,13 +56,19 @@ export function RandomBetPanel({ candidate, stakeOptions, stake, onStakeChange, 
             Expires {dayjs(candidate.expiresAt).format('MMM D, h:mm A')}
           </Typography>
           <Stack spacing={1}>
-            <Button fullWidth variant="contained" color="success" onClick={() => onBet('complete', candidate)}>
-              Bet Complete
+            <Button
+              fullWidth
+              variant="contained"
+              color="success"
+              disabled={isPlacingBet}
+              onClick={() => onBet('complete', candidate)}
+            >
+              {isPlacingBet ? 'Placing...' : 'Bet Complete'}
             </Button>
-            <Button fullWidth variant="contained" color="error" onClick={() => onBet('fail', candidate)}>
-              Bet Fail
+            <Button fullWidth variant="contained" color="error" disabled={isPlacingBet} onClick={() => onBet('fail', candidate)}>
+              {isPlacingBet ? 'Placing...' : 'Bet Fail'}
             </Button>
-            <Button fullWidth variant="text" color="inherit" onClick={onSkip}>
+            <Button fullWidth variant="text" color="inherit" disabled={isPlacingBet} onClick={onSkip}>
               Skip
             </Button>
           </Stack>
