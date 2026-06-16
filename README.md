@@ -36,6 +36,21 @@ npm install
 npm run dev
 ```
 
+## Android App Bundle (Play Store)
+
+The web app is wrapped with [Capacitor](https://capacitorjs.com/). Build a signed release `.aab`:
+
+```bash
+npm install
+npm run build:aab
+```
+
+Output: `android/app/build/outputs/bundle/release/app-release.aab`
+
+Requirements: JDK 17+, Android SDK (`ANDROID_HOME`), and `keytool` on your PATH.
+
+On first run, the script creates `android/keystore/release.keystore` and `android/keystore.properties` (gitignored). Override the password with `ANDROID_KEYSTORE_PASSWORD`. For production Play uploads, use your own upload keystore and keep `keystore.properties` private.
+
 ## Firestore Collections
 
 - `users`
