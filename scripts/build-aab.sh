@@ -40,6 +40,7 @@ EOF
 fi
 
 cd "$ROOT"
+npm run cap:assets
 npm run build
 npx cap sync android
 cd "$ANDROID_DIR"

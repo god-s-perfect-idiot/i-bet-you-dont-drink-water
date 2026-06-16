@@ -7,10 +7,10 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.waterbets.app"
+    namespace = "com.eotc.chorebet"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.waterbets.app"
+        applicationId "com.eotc.chorebet"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

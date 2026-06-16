@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:aab": "bash scripts/build-aab.sh",
+    "cap:assets": "capacitor-assets generate --android --iconBackgroundColor '#D4A017' --splashBackgroundColor '#D4A017' --logoSplashScale 0.35",
     "cap:sync": "npm run build && npx cap sync android",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "playstore:assets": "pnpm --dir play-store-assets dev"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",
@@ -26,6 +28,7 @@
     "react-router-dom": "^7.14.2"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",

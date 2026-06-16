@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 2,
+  "appName": "I Bet You Don't Drink Water",
+  "themeId": "clean-light",
+  "connectedCanvas": true,
+  "locales": [
+    "en"
+  ],
+  "locale": "en",
+  "device": "android",
+  "orientation": "portrait",
+  "appIcon": "/app-icon.png",
+  "slidesByDevice": {
+    "iphone": [],
+    "android": [
+      {
+        "id": "hero_chores_bets",
+        "layout": "hero",
+        "label": {
+          "en": "CHORES + BETS"
+        },
+        "headline": {
+          "en": "Bet on chores.\nWin fake cash."
+        },
+        "screenshot": "/screenshots/android/phone/{locale}/01.png",
+        "transforms": {
+          "caption": {
+            "x": 86.39999220657349,
+            "y": 172.80001493072507,
+            "width": 907,
+            "height": 538,
+            "rotation": 0,
+            "zIndex": 4
+          }
+        }
+      },
+      {
+        "id": "slide_chores",
+        "layout": "device-bottom",
+        "label": {
+          "en": "CHORES"
+        },
+        "headline": {
+          "en": "Post tasks.\nBeat the clock."
+        },
+        "screenshot": "/screenshots/android/phone/{locale}/01.png"
+      },
+      {
+        "id": "slide_bets",
+        "layout": "device-top",
+        "label": {
+          "en": "BETS"
+        },
+        "headline": {
+          "en": "Pick a side.\nSplit the pool."
+        },
+        "screenshot": "/screenshots/android/phone/{locale}/02.png",
+        "inverted": true
+      },
+      {
+        "id": "slide_popular",
+        "layout": "two-devices",
+        "label": {
+          "en": "HOT POOLS"
+        },
+        "headline": {
+          "en": "Ride the\nbiggest pots."
+        },
+        "screenshot": "/screenshots/android/phone/{locale}/03.png",
+        "screenshotSecondary": "/screenshots/android/phone/{locale}/04.png"
+      },
+      {
+        "id": "slide_rank",
+        "layout": "device-bottom",
+        "label": {
+          "en": "LEADERBOARD"
+        },
+        "headline": {
+          "en": "Climb the\nnet worth ranks."
+        },
+        "screenshot": "/screenshots/android/phone/{locale}/05.png"
+      },
+      {
+        "id": "slide_rewards",
+        "layout": "no-device",
+        "label": {
+          "en": "MORE"
+        },
+        "headline": {
+          "en": "Chores · Bets\nRank · Rewards"
+        },
+        "screenshot": "/screenshots/android/phone/{locale}/06.png",
+        "inverted": false
+      }
+    ],
+    "ipad": [],
+    "android-7": [],
+    "android-10": [],
+    "feature-graphic": [
+      {
+        "id": "fg_main",
+        "layout": "feature-graphic",
+        "label": {},
+        "headline": {
+          "en": "Chores you bet on.\nWater you (maybe) drink."
+        },
+        "screenshot": "/screenshots/android/phone/{locale}/01.png"
+      }
+    ]
+  }
+}

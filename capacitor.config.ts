@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.waterbets.app',
+  appId: 'com.eotc.chorebet',
   appName: 'Water Bets',
   webDir: 'dist',
   android: {

@@ -33,4 +33,5 @@ android/local.properties
 
 .agents/*
 .pnpm-store/*
-play-store-assets/*
+play-store-assets/node_modules
+play-store-assets/.next

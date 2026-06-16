@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
+      port: 5889,
       // When the page URL port differs from Vite’s port (port forwarding, Simple Browser, etc.),
       // set VITE_HMR_CLIENT_PORT in `.env.local` to the port in your browser (e.g. 5174).
       hmr: Number.isFinite(clientPort) ? { clientPort } : undefined,
